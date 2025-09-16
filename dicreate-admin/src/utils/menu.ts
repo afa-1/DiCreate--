@@ -38,7 +38,7 @@ export const menuConfig: MenuItem[] = [
         key: 'product-component',
         title: '服装部件',
         path: '/product/component',
-        roles: [UserRole.OPERATOR, UserRole.DESIGNER]
+        roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.DESIGNER]
       }
     ]
   },
@@ -58,13 +58,13 @@ export const menuConfig: MenuItem[] = [
         key: 'order-audit',
         title: '订单审核',
         path: '/order/audit',
-        roles: [UserRole.OPERATOR]
+        roles: [UserRole.ADMIN, UserRole.OPERATOR]
       },
       {
         key: 'order-custom',
         title: '定制订单',
         path: '/order/custom',
-        roles: [UserRole.OPERATOR, UserRole.SALES]
+        roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.SALES]
       }
     ]
   },
@@ -78,13 +78,13 @@ export const menuConfig: MenuItem[] = [
         key: 'user-channel',
         title: '渠道商管理',
         path: '/user/channel',
-        roles: [UserRole.OPERATOR]
+        roles: [UserRole.ADMIN, UserRole.OPERATOR]
       },
       {
         key: 'user-role',
         title: '角色权限',
         path: '/user/role',
-        roles: [UserRole.OPERATOR]
+        roles: [UserRole.ADMIN, UserRole.OPERATOR]
       }
     ]
   },
@@ -92,19 +92,19 @@ export const menuConfig: MenuItem[] = [
     key: 'resource',
     title: '资源库管理',
     icon: 'icon-folder',
-    roles: [UserRole.OPERATOR, UserRole.DESIGNER],
+    roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.DESIGNER],
     children: [
       {
         key: 'resource-fabric',
         title: '面料库',
         path: '/resource/fabric',
-        roles: [UserRole.OPERATOR, UserRole.DESIGNER]
+        roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.DESIGNER]
       },
       {
         key: 'resource-case',
         title: '案例库',
         path: '/resource/case',
-        roles: [UserRole.OPERATOR, UserRole.DESIGNER]
+        roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.DESIGNER]
       }
     ]
   },
@@ -124,13 +124,13 @@ export const menuConfig: MenuItem[] = [
         key: 'ai-scheme',
         title: '方案审核',
         path: '/ai-design/scheme',
-        roles: [UserRole.DESIGNER]
+        roles: [UserRole.ADMIN, UserRole.DESIGNER]
       },
       {
         key: 'ai-model',
         title: '3D模型管理',
         path: '/ai-design/model',
-        roles: [UserRole.DESIGNER]
+        roles: [UserRole.ADMIN, UserRole.DESIGNER]
       }
     ]
   },
@@ -138,19 +138,19 @@ export const menuConfig: MenuItem[] = [
     key: 'system',
     title: '系统管理',
     icon: 'icon-settings',
-    roles: [UserRole.OPERATOR],
+    roles: [UserRole.ADMIN, UserRole.OPERATOR],
     children: [
       {
         key: 'system-config',
         title: '系统配置',
         path: '/system/config',
-        roles: [UserRole.OPERATOR]
+        roles: [UserRole.ADMIN, UserRole.OPERATOR]
       },
       {
         key: 'system-log',
         title: '操作日志',
         path: '/system/log',
-        roles: [UserRole.OPERATOR]
+        roles: [UserRole.ADMIN, UserRole.OPERATOR]
       }
     ]
   }

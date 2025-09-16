@@ -8,31 +8,31 @@ export const menuConfig: MenuItem[] = [
     title: '工作台',
     icon: 'icon-dashboard',
     path: '/dashboard',
-    roles: [UserRole.OPERATOR, UserRole.DESIGNER, UserRole.SALES]
+    roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.DESIGNER, UserRole.SALES]
   },
   {
     key: 'product',
     title: '商品管理',
     icon: 'icon-apps',
-    roles: [UserRole.OPERATOR, UserRole.DESIGNER],
+    roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.DESIGNER],
     children: [
       {
         key: 'product-list',
         title: '商品列表',
         path: '/product/list',
-        roles: [UserRole.OPERATOR, UserRole.DESIGNER]
+        roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.DESIGNER]
       },
       {
         key: 'product-create',
         title: '新增商品',
         path: '/product/create',
-        roles: [UserRole.OPERATOR]
+        roles: [UserRole.ADMIN, UserRole.OPERATOR]
       },
       {
         key: 'product-category',
         title: '商品分类',
         path: '/product/category',
-        roles: [UserRole.OPERATOR]
+        roles: [UserRole.ADMIN, UserRole.OPERATOR]
       },
       {
         key: 'product-component',
@@ -46,13 +46,13 @@ export const menuConfig: MenuItem[] = [
     key: 'order',
     title: '订单管理',
     icon: 'icon-file-text',
-    roles: [UserRole.OPERATOR, UserRole.SALES],
+    roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.SALES],
     children: [
       {
         key: 'order-list',
         title: '订单列表',
         path: '/order/list',
-        roles: [UserRole.OPERATOR, UserRole.SALES]
+        roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.SALES]
       },
       {
         key: 'order-audit',
@@ -72,7 +72,7 @@ export const menuConfig: MenuItem[] = [
     key: 'user',
     title: '用户管理',
     icon: 'icon-user',
-    roles: [UserRole.OPERATOR],
+    roles: [UserRole.ADMIN, UserRole.OPERATOR],
     children: [
       {
         key: 'user-channel',
@@ -112,13 +112,13 @@ export const menuConfig: MenuItem[] = [
     key: 'ai-design',
     title: 'AI设计管理',
     icon: 'icon-robot',
-    roles: [UserRole.DESIGNER],
+    roles: [UserRole.ADMIN, UserRole.DESIGNER],
     children: [
       {
         key: 'ai-template',
         title: '设计模板',
         path: '/ai-design/template',
-        roles: [UserRole.DESIGNER]
+        roles: [UserRole.ADMIN, UserRole.DESIGNER]
       },
       {
         key: 'ai-scheme',

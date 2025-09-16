@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DiCreate.AI 后台管理系统</title>
+  <script>
+    // GitHub Pages SPA 路由处理
+    // 将当前路径存储到 sessionStorage 中，然后重定向到根路径
+    sessionStorage.setItem('redirect', location.pathname + location.search + location.hash);
+    location.replace(location.origin + location.pathname.split('/').slice(0, -1).join('/') + '/');
+  </script>
+</head>
+<body>
+  <div>正在重定向...</div>
+</body>
+</html>

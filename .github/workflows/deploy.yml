@@ -37,4 +37,3 @@ jobs:
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./dicreate-admin/dist
-        cname: dicreate-admin.github.io

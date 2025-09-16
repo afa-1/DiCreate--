@@ -36,7 +36,7 @@
                 存储配置
               </a-menu-item>
               <a-menu-item key="payment">
-                <template #icon><icon-credit-card /></template>
+                <template #icon><icon-idcard /></template>
                 支付配置
               </a-menu-item>
               <a-menu-item key="security">
@@ -371,7 +371,7 @@ import {
   IconEmail,
   IconPhone,
   IconCloud,
-  IconCreditCard,
+  IconIdcard,
   IconLock,
   IconSave,
   IconSend

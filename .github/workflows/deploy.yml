@@ -1,4 +1,4 @@
-name: Deploy Vue App to GitHub Pages
+name: Deploy Website and Admin to GitHub Pages
 
 on:
   push:
@@ -26,17 +26,45 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: 'dicreate-admin/package-lock.json'
           
-      - name: Install dependencies
+      - name: Install admin dependencies
         run: |
           cd dicreate-admin
           npm ci
           
-      - name: Build
+      - name: Build admin
         run: |
           cd dicreate-admin
           npm run build
+          
+      - name: Create redirect page
+        run: |
+          mkdir -p deploy-dist
+          cp -r dicreate-admin/dist/* deploy-dist/
+          
+          # Create index.html redirect to admin
+          cat > deploy-dist/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html lang="zh-CN">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>DiCreate.AI 管理系统</title>
+            <script>
+              // Redirect to admin interface
+              window.location.href = '/DiCreate--/admin/';
+            </script>
+          </head>
+          <body>
+            <p>正在跳转到管理系统...</p>
+            <a href="/DiCreate--/admin/">如果没有自动跳转，请点击这里</a>
+          </body>
+          </html>
+          EOF
+          
+          # Create admin directory with the built files
+          mkdir -p deploy-dist/admin
+          cp -r dicreate-admin/dist/* deploy-dist/admin/
           
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -44,7 +72,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./dicreate-admin/dist
+          path: ./deploy-dist
 
   deploy:
     environment:

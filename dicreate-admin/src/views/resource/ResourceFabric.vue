@@ -158,10 +158,10 @@
               <span>{{ fabric.createdAt }}</span>
             </div>
             <div class="mt-2 flex flex-wrap gap-1">
-              <a-tag v-for="attr in fabric.attributes.slice(0, 2)" :key="attr" size="mini">
+              <a-tag v-for="attr in fabric.attributes.slice(0, 2)" :key="attr" size="small">
                 {{ attr }}
               </a-tag>
-              <a-tag v-if="fabric.attributes.length > 2" size="mini" color="gray">
+              <a-tag v-if="fabric.attributes.length > 2" size="small" color="gray">
                 +{{ fabric.attributes.length - 2 }}
               </a-tag>
             </div>

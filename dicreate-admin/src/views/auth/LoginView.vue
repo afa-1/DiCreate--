@@ -85,19 +85,19 @@
           <div class="space-y-1 text-xs text-blue-600">
             <div class="flex justify-between">
               <span>超级管理员：admin / 123456</span>
-              <a-button size="mini" @click="fillDemo('admin')">填入</a-button>
+              <a-button size="small" @click="fillDemo('admin')">填入</a-button>
             </div>
             <div class="flex justify-between">
               <span>运营人员：operator / 123456</span>
-              <a-button size="mini" @click="fillDemo('operator')">填入</a-button>
+              <a-button size="small" @click="fillDemo('operator')">填入</a-button>
             </div>
             <div class="flex justify-between">
               <span>设计师：designer / 123456</span>
-              <a-button size="mini" @click="fillDemo('designer')">填入</a-button>
+              <a-button size="small" @click="fillDemo('designer')">填入</a-button>
             </div>
             <div class="flex justify-between">
               <span>销售：sales / 123456</span>
-              <a-button size="mini" @click="fillDemo('sales')">填入</a-button>
+              <a-button size="small" @click="fillDemo('sales')">填入</a-button>
             </div>
           </div>
         </div>
@@ -118,6 +118,7 @@ import { Message } from '@arco-design/web-vue'
 import { IconUser, IconLock } from '@arco-design/web-vue/es/icon'
 import { useUserStore } from '@/stores/user'
 import type { LoginForm } from '@/types'
+import { UserRole } from '@/types'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -180,7 +181,7 @@ const mockLogin = async (form: LoginForm) => {
           id: '0',
           username: 'admin',
           email: 'admin@dicreate.ai',
-          role: 'admin',
+          role: UserRole.ADMIN,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         },
@@ -188,7 +189,7 @@ const mockLogin = async (form: LoginForm) => {
           id: '1',
           username: 'operator',
           email: 'operator@dicreate.ai',
-          role: 'operator',
+          role: UserRole.OPERATOR,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         },
@@ -196,7 +197,7 @@ const mockLogin = async (form: LoginForm) => {
           id: '2',
           username: 'designer',
           email: 'designer@dicreate.ai',
-          role: 'designer',
+          role: UserRole.DESIGNER,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         },
@@ -204,7 +205,7 @@ const mockLogin = async (form: LoginForm) => {
           id: '3',
           username: 'sales',
           email: 'sales@dicreate.ai',
-          role: 'sales',
+          role: UserRole.SALES,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         }

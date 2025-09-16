@@ -10,7 +10,7 @@
       <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center">
           <div class="p-3 rounded-full bg-blue-100 text-blue-600">
-            <icon-file-text class="w-6 h-6" />
+            <icon-file class="w-6 h-6" />
           </div>
           <div class="ml-4">
             <p class="text-sm font-medium text-gray-600">待设计</p>
@@ -172,7 +172,7 @@ import {
   IconSearch, 
   IconRefresh, 
   IconUser, 
-  IconFileText, 
+  IconFile, 
   IconEdit, 
   IconCheckCircle, 
   IconGift 

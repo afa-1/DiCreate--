@@ -158,7 +158,7 @@ import {
   IconDelete,
   IconUser,
   IconUserGroup,
-  IconCrown
+  IconStar
 } from '@arco-design/web-vue/es/icon'
 
 interface Role {
@@ -300,7 +300,7 @@ const permissionModules: PermissionModule[] = [
 
 const getRoleIcon = (roleKey: string) => {
   const iconMap: Record<string, any> = {
-    operator: IconCrown,
+    operator: IconStar,
     designer: IconEdit,
     sales: IconUserGroup,
     service: IconUser

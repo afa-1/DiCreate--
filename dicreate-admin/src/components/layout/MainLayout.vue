@@ -215,6 +215,7 @@ const navigateTo = (path?: string) => {
 // 获取角色文本
 const getRoleText = (role?: UserRole) => {
   const roleMap = {
+    [UserRole.ADMIN]: '超级管理员',
     [UserRole.OPERATOR]: '运营人员',
     [UserRole.DESIGNER]: '服装设计师',
     [UserRole.SALES]: '销售'

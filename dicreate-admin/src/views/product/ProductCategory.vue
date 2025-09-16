@@ -23,10 +23,10 @@
           <div class="flex items-center justify-between w-full">
             <span>{{ title }}</span>
             <a-space>
-              <a-button size="mini" @click.stop="editCategory(key)">
+              <a-button size="small" @click.stop="editCategory(key)">
                 <template #icon><icon-edit /></template>
               </a-button>
-              <a-button size="mini" status="danger" @click.stop="deleteCategory(key)">
+              <a-button size="small" status="danger" @click.stop="deleteCategory(key)">
                 <template #icon><icon-delete /></template>
               </a-button>
             </a-space>

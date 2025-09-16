@@ -166,10 +166,10 @@
               <span>{{ caseItem.createdAt }}</span>
             </div>
             <div class="mt-2 flex flex-wrap gap-1">
-              <a-tag v-for="tag in caseItem.tags.slice(0, 2)" :key="tag" size="mini">
+              <a-tag v-for="tag in caseItem.tags.slice(0, 2)" :key="tag" size="small">
                 {{ tag }}
               </a-tag>
-              <a-tag v-if="caseItem.tags.length > 2" size="mini" color="gray">
+              <a-tag v-if="caseItem.tags.length > 2" size="small" color="gray">
                 +{{ caseItem.tags.length - 2 }}
               </a-tag>
             </div>

@@ -81,6 +81,12 @@ export const menuConfig: MenuItem[] = [
         roles: [UserRole.ADMIN, UserRole.OPERATOR]
       },
       {
+        key: 'user-platform',
+        title: '平台用户',
+        path: '/user/platform',
+        roles: [UserRole.ADMIN, UserRole.OPERATOR]
+      },
+      {
         key: 'user-role',
         title: '角色权限',
         path: '/user/role',
@@ -104,6 +110,18 @@ export const menuConfig: MenuItem[] = [
         key: 'resource-case',
         title: '案例库',
         path: '/resource/case',
+        roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.DESIGNER]
+      },
+      {
+        key: 'resource-model',
+        title: '模特库',
+        path: '/resource/model',
+        roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.DESIGNER]
+      },
+      {
+        key: 'resource-trend',
+        title: '趋势库',
+        path: '/resource/trend',
         roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.DESIGNER]
       }
     ]

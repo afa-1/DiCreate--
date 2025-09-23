@@ -127,17 +127,26 @@ const router = createRouter({
           children: [
             {
               path: 'channel',
-              name: 'UserChannel',
-              component: () => import('@/views/user/UserChannel.vue'),
+              name: 'ChannelUser',
+              component: () => import('@/views/user/ChannelUser.vue'),
               meta: {
                 title: '渠道商管理',
                 roles: [UserRole.ADMIN, UserRole.OPERATOR]
               }
             },
             {
+              path: 'platform',
+              name: 'PlatformUser',
+              component: () => import('@/views/user/PlatformUser.vue'),
+              meta: {
+                title: '平台用户',
+                roles: [UserRole.ADMIN, UserRole.OPERATOR]
+              }
+            },
+            {
               path: 'role',
-              name: 'UserRole',
-              component: () => import('@/views/user/UserRole.vue'),
+              name: 'RolePermission',
+              component: () => import('@/views/user/RolePermission.vue'),
               meta: {
                 title: '角色权限',
                 roles: [UserRole.ADMIN, UserRole.OPERATOR]
@@ -168,6 +177,24 @@ const router = createRouter({
               component: () => import('@/views/resource/ResourceCase.vue'),
               meta: {
                 title: '案例库',
+                roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.DESIGNER]
+              }
+            },
+            {
+              path: 'model',
+              name: 'ModelLibrary',
+              component: () => import('@/views/resource/ModelLibrary.vue'),
+              meta: {
+                title: '模特库',
+                roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.DESIGNER]
+              }
+            },
+            {
+              path: 'trend',
+              name: 'TrendLibrary',
+              component: () => import('@/views/resource/TrendLibrary.vue'),
+              meta: {
+                title: '趋势库',
                 roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.DESIGNER]
               }
             }

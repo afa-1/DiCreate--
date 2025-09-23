@@ -9,11 +9,11 @@
     <!-- 操作栏 -->
     <div class="action-bar">
       <a-button type="primary" @click="showCreateModal">
-        <PlusOutlined />
+        <IconPlus />
         新增角色
       </a-button>
       <a-button @click="refreshData">
-        <ReloadOutlined />
+        <IconRefresh />
         刷新
       </a-button>
     </div>
@@ -162,7 +162,7 @@
       v-model:open="userModalVisible"
       title="角色用户列表"
       width="800px"
-      :footer="null"
+      :footer="false"
     >
       <a-table
         :columns="userColumns"
@@ -187,8 +187,8 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { message } from 'ant-design-vue'
-import { PlusOutlined, ReloadOutlined } from '@ant-design/icons-vue'
+import { Message } from '@arco-design/web-vue'
+import { IconPlus, IconRefresh } from '@arco-design/web-vue/es/icon'
 import type { Role, Permission, RbacUser } from '@/types/rbac'
 import { UserType } from '@/types/rbac'
 
@@ -396,7 +396,7 @@ const editRole = (record: Role) => {
 
 const deleteRole = (record: Role) => {
   // 删除角色逻辑
-  message.success('删除成功')
+  Message.success('删除成功')
   refreshData()
 }
 
@@ -418,7 +418,7 @@ const viewUsers = (record: Role) => {
 
 const handleSubmit = () => {
   // 提交表单逻辑
-  message.success(isEdit.value ? '更新成功' : '创建成功')
+  Message.success(isEdit.value ? '更新成功' : '创建成功')
   modalVisible.value = false
   refreshData()
 }
@@ -430,7 +430,7 @@ const handleCancel = () => {
 
 const savePermissions = () => {
   // 保存权限逻辑
-  message.success('权限分配成功')
+  Message.success('权限分配成功')
   permissionModalVisible.value = false
 }
 

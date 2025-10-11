@@ -101,26 +101,39 @@ export const menuConfig: MenuItem[] = [
     roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.DESIGNER],
     children: [
       {
+        key: 'resource-overview',
+        title: '素材总览',
+        path: '/resource/overview',
+        roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.DESIGNER]
+      },
+      {
         key: 'resource-fabric',
-        title: '面料库',
+        title: '面料素材',
         path: '/resource/fabric',
         roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.DESIGNER]
       },
       {
         key: 'resource-case',
-        title: '案例库',
+        title: '案例素材',
         path: '/resource/case',
         roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.DESIGNER]
       },
       {
         key: 'resource-model',
-        title: '模特库',
+        title: '模特素材',
         path: '/resource/model',
         roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.DESIGNER]
       },
       {
+        key: 'resource-scene',
+        title: '场景素材',
+        path: '/resource/scene',
+        roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.DESIGNER]
+      },
+
+      {
         key: 'resource-trend',
-        title: '趋势库',
+        title: '趋势资讯',
         path: '/resource/trend',
         roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.DESIGNER]
       }
@@ -132,6 +145,36 @@ export const menuConfig: MenuItem[] = [
     icon: 'icon-robot',
     roles: [UserRole.ADMIN, UserRole.DESIGNER],
     children: [
+      {
+        key: 'ai-video-template',
+        title: '视频模板管理',
+        path: '/ai-design/video-template',
+        roles: [UserRole.ADMIN, UserRole.DESIGNER]
+      },
+      {
+        key: 'ai-material-generation',
+        title: 'AI素材生成',
+        path: '/ai-design/material-generation',
+        roles: [UserRole.ADMIN, UserRole.DESIGNER]
+      },
+      {
+        key: 'ai-video-composition',
+        title: '视频合成制作',
+        path: '/ai-design/video-composition',
+        roles: [UserRole.ADMIN, UserRole.DESIGNER]
+      },
+      {
+        key: 'ai-material-library',
+        title: '素材库管理',
+        path: '/ai-design/material-library',
+        roles: [UserRole.ADMIN, UserRole.DESIGNER]
+      },
+      {
+        key: 'ai-project-management',
+        title: '项目管理',
+        path: '/ai-design/project-management',
+        roles: [UserRole.ADMIN, UserRole.DESIGNER]
+      },
       {
         key: 'ai-template',
         title: '设计模板',
@@ -149,6 +192,26 @@ export const menuConfig: MenuItem[] = [
         title: '3D模型管理',
         path: '/ai-design/model',
         roles: [UserRole.ADMIN, UserRole.DESIGNER]
+      }
+    ]
+  },
+  {
+    key: 'catalog',
+    title: '电子画册',
+    icon: 'icon-book',
+    roles: [UserRole.ADMIN, UserRole.SALES],
+    children: [
+      {
+        key: 'catalog-template',
+        title: '模板管理',
+        path: '/catalog/template',
+        roles: [UserRole.ADMIN]
+      },
+      {
+        key: 'catalog-management',
+        title: '画册管理',
+        path: '/catalog/management',
+        roles: [UserRole.ADMIN, UserRole.SALES]
       }
     ]
   },

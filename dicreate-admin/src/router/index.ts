@@ -163,11 +163,20 @@ const router = createRouter({
           },
           children: [
             {
+              path: 'overview',
+              name: 'ResourceOverview',
+              component: () => import('@/views/resource/ResourceOverview.vue'),
+              meta: {
+                title: '素材总览',
+                roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.DESIGNER]
+              }
+            },
+            {
               path: 'fabric',
               name: 'ResourceFabric',
               component: () => import('@/views/resource/ResourceFabric.vue'),
               meta: {
-                title: '面料库',
+                title: '面料素材',
                 roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.DESIGNER]
               }
             },
@@ -176,7 +185,7 @@ const router = createRouter({
               name: 'ResourceCase',
               component: () => import('@/views/resource/ResourceCase.vue'),
               meta: {
-                title: '案例库',
+                title: '案例素材',
                 roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.DESIGNER]
               }
             },
@@ -185,16 +194,26 @@ const router = createRouter({
               name: 'ModelLibrary',
               component: () => import('@/views/resource/ModelLibrary.vue'),
               meta: {
-                title: '模特库',
+                title: '模特素材',
                 roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.DESIGNER]
               }
             },
+            {
+              path: 'scene',
+              name: 'ResourceScene',
+              component: () => import('@/views/resource/ResourceScene.vue'),
+              meta: {
+                title: '场景素材',
+                roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.DESIGNER]
+              }
+            },
+
             {
               path: 'trend',
               name: 'TrendLibrary',
               component: () => import('@/views/resource/TrendLibrary.vue'),
               meta: {
-                title: '趋势库',
+                title: '趋势资讯',
                 roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.DESIGNER]
               }
             }
@@ -208,6 +227,51 @@ const router = createRouter({
             roles: [UserRole.ADMIN, UserRole.DESIGNER]
           },
           children: [
+            {
+              path: 'video-template',
+              name: 'AIVideoTemplate',
+              component: () => import('@/views/ai/AIVideoTemplate.vue'),
+              meta: {
+                title: '视频模板管理',
+                roles: [UserRole.ADMIN, UserRole.DESIGNER]
+              }
+            },
+            {
+              path: 'material-generation',
+              name: 'AIMaterialGeneration',
+              component: () => import('@/views/ai/AIMaterialGeneration.vue'),
+              meta: {
+                title: 'AI素材生成',
+                roles: [UserRole.ADMIN, UserRole.DESIGNER]
+              }
+            },
+            {
+              path: 'video-composition',
+              name: 'AIVideoComposition',
+              component: () => import('@/views/ai/AIVideoComposition.vue'),
+              meta: {
+                title: '视频合成制作',
+                roles: [UserRole.ADMIN, UserRole.DESIGNER]
+              }
+            },
+            {
+              path: 'material-library',
+              name: 'AIMaterialLibrary',
+              component: () => import('@/views/ai/AIMaterialLibrary.vue'),
+              meta: {
+                title: '素材库管理',
+                roles: [UserRole.ADMIN, UserRole.DESIGNER]
+              }
+            },
+            {
+              path: 'project-management',
+              name: 'AIProjectManagement',
+              component: () => import('@/views/ai/AIProjectManagement.vue'),
+              meta: {
+                title: '项目管理',
+                roles: [UserRole.ADMIN, UserRole.DESIGNER]
+              }
+            },
             {
               path: 'template',
               name: 'AiTemplate',
@@ -229,10 +293,56 @@ const router = createRouter({
             {
               path: 'model',
               name: 'AiModel',
-              component: () => import('@/views/ai/AIModel3D.vue'),
+              component: () => import('@/views/ai/AIModelManagement.vue'),
               meta: {
-                title: '3D模型库',
+                title: '3D模型管理',
                 roles: [UserRole.ADMIN, UserRole.DESIGNER]
+              }
+            }
+          ]
+        },
+        // 电子画册路由
+        {
+          path: 'catalog',
+          meta: {
+            title: '电子画册',
+            roles: [UserRole.ADMIN, UserRole.SALES]
+          },
+          children: [
+            {
+              path: 'template',
+              name: 'CatalogTemplate',
+              component: () => import('@/views/catalog/TemplateManagement.vue'),
+              meta: {
+                title: '模板管理',
+                roles: [UserRole.ADMIN]
+              }
+            },
+            {
+              path: 'management',
+              name: 'CatalogManagement',
+              component: () => import('@/views/catalog/CatalogManagement.vue'),
+              meta: {
+                title: '画册管理',
+                roles: [UserRole.ADMIN, UserRole.SALES]
+              }
+            },
+            {
+              path: 'create',
+              name: 'CatalogCreate',
+              component: () => import('@/views/catalog/CatalogCreate.vue'),
+              meta: {
+                title: '创建画册',
+                roles: [UserRole.ADMIN, UserRole.SALES]
+              }
+            },
+            {
+              path: 'editor/:id',
+              name: 'CatalogEditor',
+              component: () => import('@/views/catalog/CatalogEditor.vue'),
+              meta: {
+                title: '画册编辑器',
+                roles: [UserRole.ADMIN, UserRole.SALES]
               }
             }
           ]

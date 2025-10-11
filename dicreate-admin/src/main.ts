@@ -1,5 +1,6 @@
 import './assets/main.css'
 import './style/tailwind.css'
+import './styles/responsive.css'
 import ArcoVue from '@arco-design/web-vue'
 import '@arco-design/web-vue/dist/arco.css'
 

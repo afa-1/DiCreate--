@@ -403,7 +403,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { Message } from '@arco-design/web-vue'
 import {
   IconPlus,
@@ -475,6 +475,33 @@ const pagination = reactive({
 })
 
 // 表格列配置
+// 添加缺失的计算属性和变量
+const filteredTemplates = computed(() => {
+  return templateList.value.filter(template => {
+    if (searchForm.keyword && !template.name.includes(searchForm.keyword)) {
+      return false
+    }
+    if (searchForm.category && template.category !== searchForm.category) {
+      return false
+    }
+    if (searchForm.status && template.status !== searchForm.status) {
+      return false
+    }
+    return true
+  })
+})
+
+const rowSelection = reactive({
+  type: 'checkbox',
+  showCheckedAll: true,
+  onSelect: (rowKeys: string[], rowKey: string, record: any) => {
+    console.log('选择行:', rowKeys, rowKey, record)
+  },
+  onSelectAll: (selected: boolean, selectedRows: any[], changeRows: any[]) => {
+    console.log('全选:', selected, selectedRows, changeRows)
+  }
+})
+
 const columns = [
   {
     title: '预览',
@@ -503,7 +530,7 @@ const columns = [
     title: '时长',
     dataIndex: 'duration',
     width: 80,
-    render: ({ record }) => `${record.duration}s`
+    render: ({ record }: { record: any }) => `${record.duration}s`
   },
   {
     title: '帧率',
@@ -670,7 +697,7 @@ const handleSaveConfig = () => {
 }
 
 const getCategoryColor = (category: string) => {
-  const colors = {
+  const colors: Record<string, string> = {
     sports: 'blue',
     casual: 'green',
     formal: 'purple'

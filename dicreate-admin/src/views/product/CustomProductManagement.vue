@@ -1,546 +1,591 @@
 <template>
-  <div class="custom-product-management">
-    <!-- 搜索和筛选区域 -->
-    <div class="search-filter-section mb-6">
-      <div class="flex flex-wrap gap-4 items-center">
-        <a-input-search
-          v-model="searchKeyword"
-          placeholder="搜索商品名称或描述"
-          class="w-64"
-          @search="handleSearch"
-        />
-        <a-select
-          v-model="selectedCategory"
-          placeholder="选择分类"
-          class="w-40"
-          @change="handleCategoryChange"
-        >
-          <a-option value="">全部分类</a-option>
-          <a-option value="clothing">服装</a-option>
-          <a-option value="accessories">配饰</a-option>
-          <a-option value="home">家居</a-option>
-        </a-select>
-        <a-select
-          v-model="selectedStatus"
-          placeholder="选择状态"
-          class="w-32"
-          @change="handleStatusChange"
-        >
-          <a-option value="">全部状态</a-option>
-          <a-option value="active">上架</a-option>
-          <a-option value="inactive">下架</a-option>
-        </a-select>
-        <a-button type="primary" @click="handleAddProduct">
-          <template #icon><icon-plus /></template>
-          添加商品
-        </a-button>
+  <div class="min-h-screen bg-gray-50">
+    <!-- 顶部导航栏 -->
+    <div class="bg-white shadow-sm border-b">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center py-4">
+          <div class="flex items-center space-x-4">
+            <h1 class="text-2xl font-bold text-gray-900">定制商品管理</h1>
+            <div class="flex items-center space-x-2 text-sm text-gray-500">
+              <span>共 {{ productList.length }} 个商品</span>
+              <span>•</span>
+              <span>{{ filteredProducts.length }} 个显示</span>
+            </div>
+          </div>
+          <div class="flex items-center space-x-3">
+            <a-button type="outline" @click="showAddModal = true">
+              <icon-plus class="mr-2" />
+              添加商品
+            </a-button>
+            <a-button type="primary" @click="refreshData">
+              <icon-refresh class="mr-2" />
+              刷新
+            </a-button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- 商品卡片网格 -->
-    <div class="product-grid">
+    <!-- 主要内容区域 -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <!-- 筛选和搜索栏 -->
+      <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">商品名称</label>
+            <a-input 
+              v-model="searchForm.name" 
+              placeholder="搜索商品名称"
+              allow-clear
+              @input="handleSearch"
+            >
+              <template #prefix>
+                <icon-search />
+              </template>
+            </a-input>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">商品分类</label>
+            <a-select 
+              v-model="searchForm.category" 
+              placeholder="选择分类"
+              allow-clear
+              @change="handleSearch"
+            >
+              <a-option value="">全部分类</a-option>
+              <a-option value="T恤">T恤</a-option>
+              <a-option value="卫衣">卫衣</a-option>
+              <a-option value="帽子">帽子</a-option>
+              <a-option value="包包">包包</a-option>
+            </a-select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">价格范围</label>
+            <a-select 
+              v-model="searchForm.priceRange" 
+              placeholder="选择价格范围"
+              allow-clear
+              @change="handleSearch"
+            >
+              <a-option value="">全部价格</a-option>
+              <a-option value="0-100">¥0-100</a-option>
+              <a-option value="100-300">¥100-300</a-option>
+              <a-option value="300-500">¥300-500</a-option>
+              <a-option value="500+">¥500以上</a-option>
+            </a-select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">状态</label>
+            <a-select 
+              v-model="searchForm.status" 
+              placeholder="选择状态"
+              allow-clear
+              @change="handleSearch"
+            >
+              <a-option value="">全部状态</a-option>
+              <a-option value="active">上架中</a-option>
+              <a-option value="inactive">已下架</a-option>
+              <a-option value="draft">草稿</a-option>
+            </a-select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 商品网格 -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        <div
-          v-for="product in paginatedProducts"
-          :key="product.id"
-          class="product-card bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 cursor-pointer"
-          @click="handleCardClick(product)"
-        >
-          <!-- 商品图片 -->
-          <div class="relative">
-            <img
-              :src="product.image"
-              :alt="product.name"
-              class="w-full h-48 object-cover rounded-t-lg"
-            />
-            <div class="absolute top-2 right-2">
-              <a-tag
-                :color="product.status === 'active' ? 'green' : 'red'"
-                class="text-xs"
-              >
-                {{ product.status === 'active' ? '上架' : '下架' }}
-              </a-tag>
+        <!-- 加载状态 -->
+        <div v-if="loading" class="col-span-full">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div v-for="i in 8" :key="i" class="bg-white rounded-lg shadow-sm overflow-hidden animate-pulse">
+              <div class="h-48 bg-gray-200"></div>
+              <div class="p-4">
+                <div class="h-4 bg-gray-200 rounded mb-2"></div>
+                <div class="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                <div class="h-6 bg-gray-200 rounded w-1/2"></div>
+              </div>
             </div>
           </div>
+        </div>
 
-          <!-- 商品信息 -->
-          <div class="p-4">
-            <h3 class="text-lg font-semibold text-gray-800 mb-2 truncate">
-              {{ product.name }}
-            </h3>
-            <p class="text-gray-600 text-sm mb-3 line-clamp-2">
-              {{ product.description }}
-            </p>
-            
-            <!-- 价格单独一行 -->
-            <div class="mb-3">
-              <span class="text-xl font-bold text-red-500">
-                ¥{{ product.price }}
+        <!-- 商品卡片 -->
+        <div 
+          v-for="product in filteredProducts" 
+          :key="product.id"
+          class="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden group cursor-pointer animate-fade-in"
+          @click="viewProduct(product)"
+        >
+          <div class="relative">
+            <img 
+              :src="product.image" 
+              :alt="product.name"
+              class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-200"
+              @error="handleImageError"
+            />
+            <div class="absolute top-2 right-2">
+              <span 
+                :class="{
+                  'bg-green-100 text-green-800': product.status === 'active',
+                  'bg-red-100 text-red-800': product.status === 'inactive',
+                  'bg-gray-100 text-gray-800': product.status === 'draft'
+                }"
+                class="px-2 py-1 rounded-full text-xs font-medium"
+              >
+                {{ getStatusText(product.status) }}
               </span>
             </div>
-
-            <!-- 按钮区域 - 两行布局 -->
+            <div class="absolute top-2 left-2">
+              <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+                {{ product.category }}
+              </span>
+            </div>
+          </div>
+          <div class="p-4">
+            <h3 class="font-semibold text-gray-900 mb-1 line-clamp-1">{{ product.name }}</h3>
+            <p class="text-sm text-gray-600 mb-2 line-clamp-2">{{ product.description }}</p>
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center space-x-2">
+                <span class="text-xs text-gray-500">销量</span>
+                <span class="text-sm font-medium">{{ product.sales || 0 }}</span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <span class="text-xs text-gray-500">库存</span>
+                <span class="text-sm font-medium">{{ product.stock || 0 }}</span>
+              </div>
+            </div>
+            <div class="mb-3">
+              <span class="text-lg font-bold text-red-600">¥{{ product.price.toFixed(2) }}</span>
+            </div>
             <div class="space-y-2">
-              <!-- 第一行：AI快捷生成、AI高级配置 -->
-              <div class="flex gap-2">
-                <a-button
+              <div class="flex space-x-2">
+                <a-button 
+                  size="small" 
                   type="outline"
-                  size="small"
-                  class="flex-1 text-purple-600 border-purple-300 hover:bg-purple-50"
+                  class="text-purple-600 border-purple-600 hover:bg-purple-50 flex-1"
                   @click.stop="showAIQuickModal(product)"
                 >
+                  <icon-robot class="mr-1" />
                   AI快捷生成
                 </a-button>
-                <a-button
-                  type="outline"
-                  size="small"
-                  class="flex-1 text-blue-600 border-blue-300 hover:bg-blue-50"
+                <a-button 
+                  size="small" 
+                  type="text"
+                  class="text-purple-600 flex-1"
                   @click.stop="showAIAdvancedModal(product)"
                 >
                   AI高级配置
                 </a-button>
               </div>
-              
-              <!-- 第二行：编辑、删除 -->
-              <div class="flex gap-2">
-                <a-button
-                  type="outline"
-                  size="small"
-                  class="flex-1 text-green-600 border-green-300 hover:bg-green-50"
+              <div class="flex space-x-2">
+                <a-button 
+                  size="small" 
+                  type="text"
+                  class="text-blue-600 hover:bg-blue-50 flex-1"
                   @click.stop="editProduct(product)"
                 >
+                  <icon-edit class="mr-1" />
                   编辑
                 </a-button>
-                <a-button
-                  type="outline"
-                  size="small"
-                  class="flex-1 text-red-600 border-red-300 hover:bg-red-50"
+                <a-button 
+                  size="small" 
+                  type="text"
+                  class="text-red-600 hover:bg-red-50 flex-1"
                   @click.stop="deleteProduct(product)"
                 >
+                  <icon-delete class="mr-1" />
                   删除
                 </a-button>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
-
-    <!-- 分页 -->
-    <div class="flex justify-center mt-8">
-      <a-pagination
-        v-model:current="currentPage"
-        :total="filteredProducts.length"
-        :page-size="pageSize"
-        show-total
-        show-jumper
-        show-page-size
-        @change="handlePageChange"
-        @page-size-change="handlePageSizeChange"
-      />
-    </div>
-
-    <!-- AI快捷生成弹窗 -->
-    <a-modal
-      v-model:visible="aiQuickModalVisible"
-      title="AI快捷生成"
-      width="600px"
-      @ok="generateAlbum"
-      @cancel="aiQuickModalVisible = false"
-    >
-      <div class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            生成类型
-          </label>
-          <a-radio-group v-model="aiQuickConfig.type" class="w-full">
-            <a-radio value="album">商品相册</a-radio>
-            <a-radio value="description">商品描述</a-radio>
-            <a-radio value="tags">商品标签</a-radio>
-          </a-radio-group>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            生成数量
-          </label>
-          <a-input-number
-            v-model="aiQuickConfig.count"
-            :min="1"
-            :max="10"
-            class="w-full"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            风格偏好
-          </label>
-          <a-select v-model="aiQuickConfig.style" class="w-full">
-            <a-option value="modern">现代简约</a-option>
-            <a-option value="vintage">复古风格</a-option>
-            <a-option value="minimalist">极简主义</a-option>
-            <a-option value="luxury">奢华风格</a-option>
-          </a-select>
-        </div>
-      </div>
-    </a-modal>
-
-    <!-- AI高级配置弹窗 -->
-    <a-modal
-      v-model:visible="aiAdvancedModalVisible"
-      title="AI高级配置"
-      width="800px"
-      @ok="generateAdvanced"
-      @cancel="aiAdvancedModalVisible = false"
-    >
-      <div class="space-y-6">
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              目标受众
-            </label>
-            <a-select v-model="aiAdvancedConfig.audience" class="w-full">
-              <a-option value="young">年轻人群</a-option>
-              <a-option value="middle">中年人群</a-option>
-              <a-option value="senior">老年人群</a-option>
-              <a-option value="all">全年龄段</a-option>
-            </a-select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              价格区间
-            </label>
-            <a-select v-model="aiAdvancedConfig.priceRange" class="w-full">
-              <a-option value="low">经济型</a-option>
-              <a-option value="medium">中档</a-option>
-              <a-option value="high">高端</a-option>
-              <a-option value="luxury">奢侈品</a-option>
-            </a-select>
-          </div>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            关键词
-          </label>
-          <a-textarea
-            v-model="aiAdvancedConfig.keywords"
-            placeholder="请输入相关关键词，用逗号分隔"
-            :rows="3"
-            class="w-full"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            品牌调性
-          </label>
-          <a-checkbox-group v-model="aiAdvancedConfig.brandTone" class="w-full">
-            <a-checkbox value="professional">专业</a-checkbox>
-            <a-checkbox value="friendly">友好</a-checkbox>
-            <a-checkbox value="innovative">创新</a-checkbox>
-            <a-checkbox value="trustworthy">可信赖</a-checkbox>
-            <a-checkbox value="trendy">时尚</a-checkbox>
-          </a-checkbox-group>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            生成内容
-          </label>
-          <a-checkbox-group v-model="aiAdvancedConfig.contentTypes" class="w-full">
-            <a-checkbox value="images">商品图片</a-checkbox>
-            <a-checkbox value="description">详细描述</a-checkbox>
-            <a-checkbox value="specifications">规格参数</a-checkbox>
-            <a-checkbox value="usage">使用说明</a-checkbox>
-            <a-checkbox value="marketing">营销文案</a-checkbox>
-          </a-checkbox-group>
-        </div>
-      </div>
-    </a-modal>
-
-    <!-- 商品详情弹窗 -->
-    <a-modal
-      v-model:visible="productDetailVisible"
-      :title="selectedProduct?.name"
-      width="900px"
-      :footer="false"
-    >
-      <div v-if="selectedProduct" class="space-y-6">
-        <div class="grid grid-cols-2 gap-6">
-          <div>
-            <img
-              :src="selectedProduct.image"
-              :alt="selectedProduct.name"
-              class="w-full h-64 object-cover rounded-lg"
-            />
-          </div>
-          <div class="space-y-4">
-            <div>
-              <h3 class="text-xl font-semibold text-gray-800">
-                {{ selectedProduct.name }}
-              </h3>
-              <p class="text-gray-600 mt-2">
-                {{ selectedProduct.description }}
-              </p>
-            </div>
-            <div>
-              <span class="text-2xl font-bold text-red-500">
-                ¥{{ selectedProduct.price }}
-              </span>
-            </div>
-            <div class="flex gap-2">
-              <a-tag
-                :color="selectedProduct.status === 'active' ? 'green' : 'red'"
-              >
-                {{ selectedProduct.status === 'active' ? '上架' : '下架' }}
-              </a-tag>
-              <a-tag color="blue">
-                {{ getCategoryName(selectedProduct.category) }}
-              </a-tag>
-            </div>
-          </div>
-        </div>
         
-        <!-- 商品规格 -->
-        <div>
-          <h4 class="text-lg font-medium text-gray-800 mb-3">商品规格</h4>
-          <div class="grid grid-cols-2 gap-4 text-sm">
-            <div class="flex justify-between">
-              <span class="text-gray-600">材质：</span>
-              <span>{{ selectedProduct.material || '暂无' }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-gray-600">尺寸：</span>
-              <span>{{ selectedProduct.size || '暂无' }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-gray-600">颜色：</span>
-              <span>{{ selectedProduct.color || '暂无' }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-gray-600">重量：</span>
-              <span>{{ selectedProduct.weight || '暂无' }}</span>
-            </div>
-          </div>
+        <!-- 空状态 -->
+        <div v-if="!loading && productList.length === 0" class="text-center py-16 animate-fade-in">
+          <div class="text-gray-400 text-6xl mb-4">📦</div>
+          <h3 class="text-lg font-medium text-gray-900 mb-2">暂无商品</h3>
+          <p class="text-gray-500 mb-4">开始添加您的第一个定制商品</p>
+          <a-button type="primary" @click="showAddModal = true">
+            <icon-plus class="mr-2" />
+            添加商品
+          </a-button>
+        </div>
+
+        <!-- 搜索无结果 -->
+        <div v-if="!loading && productList.length > 0 && filteredProducts.length === 0" class="col-span-full text-center py-16 animate-fade-in">
+          <div class="text-gray-400 text-6xl mb-4">🔍</div>
+          <h3 class="text-lg font-medium text-gray-900 mb-2">未找到匹配的商品</h3>
+          <p class="text-gray-500 mb-4">尝试调整搜索条件或筛选器</p>
+          <a-button @click="clearSearch">清除筛选</a-button>
         </div>
       </div>
-    </a-modal>
 
-    <!-- 添加商品弹窗 -->
-    <a-modal
-      v-model:visible="addProductModalVisible"
-      title="添加商品"
-      width="700px"
-      @ok="handleSaveProduct"
-      @cancel="addProductModalVisible = false"
+      <!-- 分页 -->
+      <div v-if="!loading && filteredProducts.length > 0" class="mt-8 flex justify-center">
+        <a-pagination 
+          :total="filteredProducts.length" 
+          :page-size="pageSize" 
+          :current="currentPage"
+          show-total
+          show-jumper
+          show-size-changer
+          @change="handlePageChange"
+          @page-size-change="handlePageSizeChange"
+        />
+      </div>
+    </div>
+
+    <!-- 添加商品模态框 -->
+    <a-modal 
+      v-model:visible="showAddModal" 
+      title="添加定制商品" 
+      width="800px"
+      @ok="handleAddProduct"
+      @cancel="resetAddForm"
     >
-      <a-form :model="newProduct" layout="vertical">
-        <div class="grid grid-cols-2 gap-4">
+      <a-form :model="addForm" layout="vertical">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <a-form-item label="商品名称" required>
-            <a-input v-model="newProduct.name" placeholder="请输入商品名称" />
+            <a-input v-model="addForm.name" placeholder="请输入商品名称" />
+          </a-form-item>
+          <a-form-item label="商品分类" required>
+            <a-select v-model="addForm.category" placeholder="请选择分类">
+              <a-option value="T恤">T恤</a-option>
+              <a-option value="卫衣">卫衣</a-option>
+              <a-option value="帽子">帽子</a-option>
+              <a-option value="包包">包包</a-option>
+            </a-select>
           </a-form-item>
           <a-form-item label="商品价格" required>
-            <a-input-number
-              v-model="newProduct.price"
+            <a-input-number 
+              v-model="addForm.price" 
+              :min="0" 
+              :precision="2" 
               placeholder="请输入价格"
-              :min="0"
-              :precision="2"
+              class="w-full"
+            >
+              <template #prefix>¥</template>
+            </a-input-number>
+          </a-form-item>
+          <a-form-item label="库存数量" required>
+            <a-input-number 
+              v-model="addForm.stock" 
+              :min="0" 
+              placeholder="请输入库存数量"
               class="w-full"
             />
           </a-form-item>
         </div>
         <a-form-item label="商品描述">
-          <a-textarea
-            v-model="newProduct.description"
+          <a-textarea 
+            v-model="addForm.description" 
             placeholder="请输入商品描述"
             :rows="3"
           />
         </a-form-item>
-        <div class="grid grid-cols-2 gap-4">
-          <a-form-item label="商品分类">
-            <a-select v-model="newProduct.category" placeholder="选择分类">
-              <a-option value="clothing">服装</a-option>
-              <a-option value="accessories">配饰</a-option>
-              <a-option value="home">家居</a-option>
-            </a-select>
-          </a-form-item>
-          <a-form-item label="商品状态">
-            <a-select v-model="newProduct.status" placeholder="选择状态">
-              <a-option value="active">上架</a-option>
-              <a-option value="inactive">下架</a-option>
-            </a-select>
-          </a-form-item>
-        </div>
         <a-form-item label="商品图片">
           <a-upload
-            :file-list="newProduct.imageList"
+            :file-list="addForm.imageList"
             :show-file-list="false"
             @change="handleImageUpload"
           >
-            <template #upload-button>
-              <div class="upload-area border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+            <div class="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-blue-500 transition-colors">
+              <div v-if="!addForm.image" class="text-center">
                 <icon-plus class="text-2xl text-gray-400 mb-2" />
-                <div class="text-gray-600">点击上传图片</div>
+                <div class="text-sm text-gray-500">上传图片</div>
               </div>
-            </template>
+              <img v-else :src="addForm.image" class="w-full h-full object-cover rounded-lg" />
+            </div>
           </a-upload>
-          <div v-if="newProduct.imagePreview" class="mt-4">
-            <img
-              :src="newProduct.imagePreview"
-              alt="预览"
-              class="w-32 h-32 object-cover rounded-lg"
-            />
-          </div>
         </a-form-item>
       </a-form>
+    </a-modal>
+
+    <!-- AI快捷生成模态框 -->
+    <a-modal 
+      v-model:visible="showAIQuickModalVisible" 
+      title="AI快捷生成" 
+      width="600px"
+      @ok="handleAIQuickGenerate"
+    >
+      <div class="space-y-4">
+        <div>
+          <h4 class="font-medium mb-2">选择生成类型</h4>
+          <a-radio-group v-model="aiQuickForm.type" class="grid grid-cols-2 gap-2">
+            <a-radio value="design">设计图案</a-radio>
+            <a-radio value="description">商品描述</a-radio>
+            <a-radio value="title">商品标题</a-radio>
+            <a-radio value="tags">商品标签</a-radio>
+          </a-radio-group>
+        </div>
+        <div>
+          <h4 class="font-medium mb-2">描述需求</h4>
+          <a-textarea 
+            v-model="aiQuickForm.prompt" 
+            placeholder="请描述您的需求，例如：为这个T恤设计一个简约的图案"
+            :rows="3"
+          />
+        </div>
+        <div v-if="aiQuickForm.type === 'design'">
+          <h4 class="font-medium mb-2">设计风格</h4>
+          <a-select v-model="aiQuickForm.style" placeholder="选择设计风格" class="w-full">
+            <a-option value="minimalist">简约风格</a-option>
+            <a-option value="vintage">复古风格</a-option>
+            <a-option value="modern">现代风格</a-option>
+            <a-option value="cartoon">卡通风格</a-option>
+            <a-option value="abstract">抽象风格</a-option>
+          </a-select>
+        </div>
+      </div>
+    </a-modal>
+
+    <!-- AI高级配置模态框 -->
+    <a-modal 
+      v-model:visible="showAIAdvancedModalVisible" 
+      title="AI高级配置" 
+      width="800px"
+      @ok="handleAIAdvancedGenerate"
+    >
+      <div class="space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <h4 class="font-medium mb-2">生成内容</h4>
+            <a-checkbox-group v-model="aiAdvancedForm.contentTypes" class="grid grid-cols-2 gap-2">
+              <a-checkbox value="design">设计图案</a-checkbox>
+              <a-checkbox value="description">商品描述</a-checkbox>
+              <a-checkbox value="title">商品标题</a-checkbox>
+              <a-checkbox value="tags">商品标签</a-checkbox>
+              <a-checkbox value="variants">商品变体</a-checkbox>
+              <a-checkbox value="pricing">定价建议</a-checkbox>
+            </a-checkbox-group>
+          </div>
+          <div>
+            <h4 class="font-medium mb-2">目标受众</h4>
+            <a-select v-model="aiAdvancedForm.targetAudience" placeholder="选择目标受众" class="w-full">
+              <a-option value="young">年轻人(18-25岁)</a-option>
+              <a-option value="adult">成年人(26-40岁)</a-option>
+              <a-option value="middle-aged">中年人(41-55岁)</a-option>
+              <a-option value="senior">老年人(55岁以上)</a-option>
+              <a-option value="kids">儿童</a-option>
+            </a-select>
+          </div>
+        </div>
+        <div>
+          <h4 class="font-medium mb-2">设计要求</h4>
+          <a-textarea 
+            v-model="aiAdvancedForm.designRequirements" 
+            placeholder="详细描述您的设计要求，包括颜色、风格、元素等"
+            :rows="4"
+          />
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <h4 class="font-medium mb-2">颜色偏好</h4>
+            <a-select v-model="aiAdvancedForm.colorPreference" placeholder="选择颜色" class="w-full">
+              <a-option value="warm">暖色调</a-option>
+              <a-option value="cool">冷色调</a-option>
+              <a-option value="neutral">中性色</a-option>
+              <a-option value="bright">鲜艳色彩</a-option>
+              <a-option value="pastel">柔和色彩</a-option>
+            </a-select>
+          </div>
+          <div>
+            <h4 class="font-medium mb-2">设计复杂度</h4>
+            <a-select v-model="aiAdvancedForm.complexity" placeholder="选择复杂度" class="w-full">
+              <a-option value="simple">简单</a-option>
+              <a-option value="medium">中等</a-option>
+              <a-option value="complex">复杂</a-option>
+            </a-select>
+          </div>
+          <div>
+            <h4 class="font-medium mb-2">生成数量</h4>
+            <a-input-number 
+              v-model="aiAdvancedForm.generateCount" 
+              :min="1" 
+              :max="10" 
+              class="w-full"
+            />
+          </div>
+        </div>
+      </div>
+    </a-modal>
+
+    <!-- 删除确认模态框 -->
+    <a-modal 
+      v-model:visible="showDeleteModal" 
+      title="确认删除" 
+      @ok="confirmDelete"
+      @cancel="showDeleteModal = false"
+    >
+      <div class="text-center py-4">
+        <div class="text-red-500 text-5xl mb-4">⚠️</div>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">确认删除商品？</h3>
+        <p class="text-gray-600 mb-4">您即将删除商品 "{{ productToDelete?.name }}"</p>
+        <p class="text-sm text-red-600">此操作不可撤销，请谨慎操作</p>
+      </div>
     </a-modal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { IconPlus } from '@arco-design/web-vue/es/icon'
-import { Modal } from '@arco-design/web-vue'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { Message, Modal } from '@arco-design/web-vue'
+import {
+  IconPlus,
+  IconRefresh,
+  IconSearch,
+  IconRobot,
+  IconEdit,
+  IconDelete
+} from '@arco-design/web-vue/es/icon'
 
 // 响应式数据
-const searchKeyword = ref('')
-const selectedCategory = ref('')
-const selectedStatus = ref('')
+const loading = ref(false)
+const showAddModal = ref(false)
+const showAIQuickModalVisible = ref(false)
+const showAIAdvancedModalVisible = ref(false)
+const showDeleteModal = ref(false)
+const productToDelete = ref(null)
 const currentPage = ref(1)
 const pageSize = ref(12)
 
-// 弹窗状态
-const aiQuickModalVisible = ref(false)
-const aiAdvancedModalVisible = ref(false)
-const productDetailVisible = ref(false)
-const addProductModalVisible = ref(false)
-
-// 选中的商品
-const selectedProduct = ref(null)
-
-// AI配置
-const aiQuickConfig = ref({
-  type: 'album',
-  count: 5,
-  style: 'modern'
-})
-
-const aiAdvancedConfig = ref({
-  audience: 'all',
-  priceRange: 'medium',
-  keywords: '',
-  brandTone: [],
-  contentTypes: []
-})
-
-// 新商品数据
-const newProduct = ref({
+// 搜索表单
+const searchForm = reactive({
   name: '',
-  price: 0,
-  description: '',
   category: '',
-  status: 'active',
-  imageList: [],
-  imagePreview: ''
+  priceRange: '',
+  status: ''
 })
 
-// 模拟商品数据
-const products = ref([
+// 添加商品表单
+const addForm = reactive({
+  name: '',
+  category: '',
+  price: 0,
+  stock: 0,
+  description: '',
+  image: '',
+  imageList: []
+})
+
+// AI快捷生成表单
+const aiQuickForm = reactive({
+  type: 'design',
+  prompt: '',
+  style: ''
+})
+
+// AI高级配置表单
+const aiAdvancedForm = reactive({
+  contentTypes: ['design'],
+  targetAudience: '',
+  designRequirements: '',
+  colorPreference: '',
+  complexity: 'medium',
+  generateCount: 3
+})
+
+// 商品列表数据
+const productList = ref([
   {
     id: 1,
-    name: '定制T恤衫',
-    description: '100%纯棉材质，舒适透气，支持个性化定制印花',
-    price: 299.00,
-    image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400',
-    category: 'clothing',
+    name: '经典白色T恤',
+    description: '100%纯棉材质，舒适透气，适合日常穿着',
+    category: 'T恤',
+    price: 89.00,
+    image: '/placeholder-product.svg',
     status: 'active',
-    material: '100%纯棉',
-    size: 'S/M/L/XL',
-    color: '白色/黑色/灰色',
-    weight: '200g'
+    sales: 156,
+    stock: 89
   },
   {
     id: 2,
-    name: '个性化帆布包',
-    description: '环保帆布材质，大容量设计，可定制专属图案',
-    price: 159.00,
-    image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400',
-    category: 'accessories',
+    name: '潮流印花卫衣',
+    description: '时尚印花设计，保暖舒适，展现个性风格',
+    category: '卫衣',
+    price: 199.00,
+    image: '/placeholder-product.svg',
     status: 'active',
-    material: '帆布',
-    size: '40x35x10cm',
-    color: '原色/黑色',
-    weight: '300g'
+    sales: 89,
+    stock: 45
   },
   {
     id: 3,
-    name: '定制马克杯',
-    description: '陶瓷材质，保温效果好，支持照片和文字定制',
-    price: 89.00,
-    image: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=400',
-    category: 'home',
-    status: 'active',
-    material: '陶瓷',
-    size: '350ml',
-    color: '白色/黑色',
-    weight: '400g'
+    name: '简约棒球帽',
+    description: '经典棒球帽设计，可调节帽围，四季百搭',
+    category: '帽子',
+    price: 59.00,
+    image: '/placeholder-product.svg',
+    status: 'inactive',
+    sales: 234,
+    stock: 0
   },
   {
     id: 4,
-    name: '个性化手机壳',
-    description: '硅胶材质，防摔保护，支持多种手机型号定制',
+    name: '个性帆布包',
+    description: '环保帆布材质，大容量设计，实用又时尚',
+    category: '包包',
     price: 79.00,
-    image: 'https://images.unsplash.com/photo-1556656793-08538906a9f8?w=400',
-    category: 'accessories',
-    status: 'inactive',
-    material: '硅胶',
-    size: '多型号适配',
-    color: '透明/黑色/彩色',
-    weight: '50g'
+    image: '/placeholder-product.svg',
+    status: 'draft',
+    sales: 0,
+    stock: 120
   },
   {
     id: 5,
-    name: '定制卫衣',
-    description: '加厚保暖，柔软舒适，支持刺绣和印花定制',
-    price: 399.00,
-    image: 'https://images.unsplash.com/photo-1556821840-3a9c6dcb3be8?w=400',
-    category: 'clothing',
+    name: '复古牛仔夹克',
+    description: '经典牛仔面料，复古水洗工艺，永不过时',
+    category: '外套',
+    price: 299.00,
+    image: '/placeholder-product.svg',
     status: 'active',
-    material: '棉混纺',
-    size: 'S/M/L/XL/XXL',
-    color: '灰色/黑色/白色',
-    weight: '600g'
+    sales: 67,
+    stock: 23
   },
   {
     id: 6,
-    name: '个性化鼠标垫',
-    description: '防滑底座，精准定位，支持高清图片定制',
-    price: 39.00,
-    image: 'https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=400',
-    category: 'accessories',
+    name: '运动休闲裤',
+    description: '弹性面料，舒适修身，运动休闲两相宜',
+    category: '裤子',
+    price: 129.00,
+    image: '/placeholder-product.svg',
     status: 'active',
-    material: '橡胶+布面',
-    size: '25x20cm',
-    color: '黑色边框',
-    weight: '100g'
+    sales: 145,
+    stock: 78
   }
 ])
 
 // 计算属性
 const filteredProducts = computed(() => {
-  return products.value.filter(product => {
-    const matchesSearch = !searchKeyword.value || 
-      product.name.toLowerCase().includes(searchKeyword.value.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchKeyword.value.toLowerCase())
-    
-    const matchesCategory = !selectedCategory.value || product.category === selectedCategory.value
-    const matchesStatus = !selectedStatus.value || product.status === selectedStatus.value
-    
-    return matchesSearch && matchesCategory && matchesStatus
-  })
-})
-
-const paginatedProducts = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  const end = start + pageSize.value
-  return filteredProducts.value.slice(start, end)
+  let filtered = [...productList.value]
+  
+  // 按名称搜索
+  if (searchForm.name) {
+    filtered = filtered.filter(product => 
+      product.name.toLowerCase().includes(searchForm.name.toLowerCase())
+    )
+  }
+  
+  // 按分类筛选
+  if (searchForm.category) {
+    filtered = filtered.filter(product => product.category === searchForm.category)
+  }
+  
+  // 按价格范围筛选
+  if (searchForm.priceRange) {
+    const [min, max] = searchForm.priceRange.split('-').map(Number)
+    if (max) {
+      filtered = filtered.filter(product => product.price >= min && product.price <= max)
+    } else {
+      filtered = filtered.filter(product => product.price >= min)
+    }
+  }
+  
+  // 按状态筛选
+  if (searchForm.status) {
+    filtered = filtered.filter(product => product.status === searchForm.status)
+  }
+  
+  return filtered
 })
 
 // 方法
@@ -548,12 +593,26 @@ const handleSearch = () => {
   currentPage.value = 1
 }
 
-const handleCategoryChange = () => {
-  currentPage.value = 1
+const clearSearch = () => {
+  Object.assign(searchForm, {
+    name: '',
+    category: '',
+    priceRange: '',
+    status: ''
+  })
 }
 
-const handleStatusChange = () => {
-  currentPage.value = 1
+const refreshData = async () => {
+  loading.value = true
+  try {
+    // 模拟API调用
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    Message.success('数据刷新成功')
+  } catch (error) {
+    Message.error('刷新失败，请重试')
+  } finally {
+    loading.value = false
+  }
 }
 
 const handlePageChange = (page: number) => {
@@ -565,164 +624,150 @@ const handlePageSizeChange = (size: number) => {
   currentPage.value = 1
 }
 
-const handleCardClick = (product: any) => {
-  selectedProduct.value = product
-  productDetailVisible.value = true
+const getStatusText = (status: string) => {
+  const statusMap = {
+    active: '上架中',
+    inactive: '已下架',
+    draft: '草稿'
+  }
+  return statusMap[status] || status
+}
+
+const handleImageError = (event: Event) => {
+  const target = event.target as HTMLImageElement
+  target.src = '/placeholder-product.svg'
+}
+
+const viewProduct = (product: any) => {
+  console.log('查看商品详情:', product)
+  Message.info(`查看商品: ${product.name}`)
+}
+
+const editProduct = (product: any) => {
+  console.log('编辑商品:', product)
+  Message.info(`编辑商品: ${product.name}`)
+}
+
+const deleteProduct = (product: any) => {
+  productToDelete.value = product
+  showDeleteModal.value = true
+}
+
+const confirmDelete = async () => {
+  if (!productToDelete.value) return
+  
+  try {
+    // 模拟删除API调用
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    // 从列表中移除商品
+    const index = productList.value.findIndex(p => p.id === productToDelete.value.id)
+    if (index > -1) {
+      productList.value.splice(index, 1)
+    }
+    
+    Message.success(`商品 "${productToDelete.value.name}" 删除成功`)
+    showDeleteModal.value = false
+    productToDelete.value = null
+  } catch (error) {
+    Message.error('删除失败，请重试')
+  }
 }
 
 const showAIQuickModal = (product: any) => {
-  selectedProduct.value = product
-  aiQuickModalVisible.value = true
+  console.log('AI快捷生成:', product)
+  showAIQuickModalVisible.value = true
 }
 
 const showAIAdvancedModal = (product: any) => {
-  selectedProduct.value = product
-  aiAdvancedModalVisible.value = true
+  console.log('AI高级配置:', product)
+  showAIAdvancedModalVisible.value = true
 }
 
-const generateAlbum = () => {
-  // 模拟AI生成过程
-  console.log('生成相册配置:', aiQuickConfig.value)
-  // 这里可以调用实际的AI生成API
-  aiQuickModalVisible.value = false
-  
-  // 显示生成结果通知
-  generateSampleNotice()
+const handleAIQuickGenerate = async () => {
+  try {
+    // 模拟AI生成
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    Message.success('AI生成完成')
+    showAIQuickModalVisible.value = false
+  } catch (error) {
+    Message.error('生成失败，请重试')
+  }
 }
 
-const generateAdvanced = () => {
-  // 模拟AI高级生成过程
-  console.log('高级生成配置:', aiAdvancedConfig.value)
-  // 这里可以调用实际的AI生成API
-  aiAdvancedModalVisible.value = false
-  
-  // 显示生成结果通知
-  generateSampleNotice()
+const handleAIAdvancedGenerate = async () => {
+  try {
+    // 模拟AI生成
+    await new Promise(resolve => setTimeout(resolve, 3000))
+    Message.success('AI高级生成完成')
+    showAIAdvancedModalVisible.value = false
+  } catch (error) {
+    Message.error('生成失败，请重试')
+  }
 }
 
-const generateSampleNotice = () => {
-  // 这里可以显示生成结果的通知
-  console.log('AI生成完成')
+const handleAddProduct = async () => {
+  try {
+    // 验证表单
+    if (!addForm.name || !addForm.category || !addForm.price) {
+      Message.error('请填写必填字段')
+      return
+    }
+    
+    // 模拟API调用
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    // 添加到列表
+    const newProduct = {
+      id: Date.now(),
+      ...addForm,
+      status: 'draft',
+      sales: 0,
+      image: addForm.image || '/placeholder-product.svg'
+    }
+    
+    productList.value.unshift(newProduct)
+    Message.success('商品添加成功')
+    showAddModal.value = false
+    resetAddForm()
+  } catch (error) {
+    Message.error('添加失败，请重试')
+  }
 }
 
-const handleAddProduct = () => {
-  // 重置新商品数据
-  newProduct.value = {
+const resetAddForm = () => {
+  Object.assign(addForm, {
     name: '',
-    price: 0,
-    description: '',
     category: '',
-    status: 'active',
-    imageList: [],
-    imagePreview: ''
-  }
-  addProductModalVisible.value = true
-}
-
-const handleSaveProduct = () => {
-  // 验证表单数据
-  if (!newProduct.value.name || !newProduct.value.price) {
-    console.log('请填写必要信息')
-    return
-  }
-  
-  // 添加新商品到列表
-  const newId = Math.max(...products.value.map(p => p.id)) + 1
-  products.value.unshift({
-    ...newProduct.value,
-    id: newId,
-    image: newProduct.value.imagePreview || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400'
+    price: 0,
+    stock: 0,
+    description: '',
+    image: '',
+    imageList: []
   })
-  
-  addProductModalVisible.value = false
-  console.log('商品添加成功')
 }
 
 const handleImageUpload = (fileList: any) => {
   if (fileList.length > 0) {
-    const file = fileList[0].originFile
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      newProduct.value.imagePreview = e.target?.result as string
-    }
-    reader.readAsDataURL(file)
+    const file = fileList[0]
+    // 这里应该上传到服务器，现在只是模拟
+    addForm.image = URL.createObjectURL(file.originFile)
   }
+  addForm.imageList = fileList
 }
 
-const getCategoryName = (category: string) => {
-  const categoryMap: Record<string, string> = {
-    clothing: '服装',
-    accessories: '配饰',
-    home: '家居'
-  }
-  return categoryMap[category] || category
-}
-
-// 编辑商品
-const editProduct = (product: any) => {
-  console.log('编辑商品:', product.name)
-  // 这里可以打开编辑弹窗或跳转到编辑页面
-  // 示例：显示商品信息
-  Modal.info({
-    title: '编辑商品',
-    content: `正在编辑商品：${product.name}`,
-    okText: '确定'
-  })
-}
-
-// 删除商品
-const deleteProduct = (product: any) => {
-  Modal.confirm({
-    title: '确认删除',
-    content: `确定要删除商品「${product.name}」吗？此操作不可恢复。`,
-    okText: '确定删除',
-    cancelText: '取消',
-    okButtonProps: {
-      status: 'danger'
-    },
-    onOk: () => {
-      // 模拟删除操作
-      const index = products.value.findIndex(p => p.id === product.id)
-      if (index > -1) {
-        products.value.splice(index, 1)
-        console.log('商品删除成功')
-      }
-    }
-  })
-}
-
+// 生命周期
 onMounted(() => {
-  // 组件挂载后的初始化操作
-  console.log('定制商品管理页面已加载')
+  // 初始化数据
 })
 </script>
 
 <style scoped>
-.custom-product-management {
-  padding: 24px;
-  background-color: #f5f5f5;
-  min-height: 100vh;
-}
-
-.search-filter-section {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.product-grid {
-  background: transparent;
-}
-
-.product-card {
-  transition: all 0.3s ease;
-  border: 1px solid #e5e7eb;
-}
-
-.product-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .line-clamp-2 {
@@ -732,40 +777,31 @@ onMounted(() => {
   overflow: hidden;
 }
 
-.upload-area {
-  cursor: pointer;
-  transition: all 0.3s ease;
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
 }
 
-.upload-area:hover {
-  border-color: #3b82f6;
-  background-color: #f8fafc;
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .custom-product-management {
-    padding: 16px;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
   }
-  
-  .search-filter-section {
-    padding: 16px;
-  }
-  
-  .search-filter-section .flex {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .search-filter-section .flex > * {
-    width: 100%;
-    margin-bottom: 8px;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-@media (max-width: 640px) {
-  .product-grid .grid {
-    grid-template-columns: 1fr;
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: .5;
   }
 }
 </style>

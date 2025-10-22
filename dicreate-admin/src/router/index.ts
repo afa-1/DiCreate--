@@ -34,6 +34,16 @@ const router = createRouter({
             roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.DESIGNER, UserRole.SALES]
           }
         },
+        // 定制商品管理路由（一级菜单）
+        {
+          path: 'custom-product-management',
+          name: 'CustomProductManagement',
+          component: () => import('@/views/product/CustomProductManagement.vue'),
+          meta: {
+            title: '定制商品管理',
+            roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.DESIGNER, UserRole.SALES]
+          }
+        },
         // 商品管理路由
         {
           path: 'product',

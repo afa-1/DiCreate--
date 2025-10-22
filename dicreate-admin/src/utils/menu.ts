@@ -11,6 +11,13 @@ export const menuConfig: MenuItem[] = [
     roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.DESIGNER, UserRole.SALES]
   },
   {
+    key: 'custom-product-management',
+    title: '定制商品管理',
+    icon: 'icon-shopping-cart',
+    path: '/custom-product-management',
+    roles: [UserRole.ADMIN, UserRole.OPERATOR, UserRole.DESIGNER, UserRole.SALES]
+  },
+  {
     key: 'product',
     title: '商品管理',
     icon: 'icon-apps',

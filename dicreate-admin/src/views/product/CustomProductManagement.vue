@@ -1,1095 +1,771 @@
 <template>
   <div class="custom-product-management">
-    <div class="bg-white rounded-lg shadow-sm p-6">
-      <!-- 页面标题和操作按钮 -->
-      <div class="flex items-center justify-between mb-6">
-        <h1 class="text-2xl font-bold text-gray-900">定制商品管理</h1>
-        <div class="flex space-x-3">
-          <a-button 
-            type="primary" 
-            size="large"
-            @click="addModalVisible = true"
-            class="px-6"
-          >
-            <icon-plus class="mr-2" />
-            新增
-          </a-button>
-          <a-button 
-            size="large"
-            :loading="albumGenerating"
-            :disabled="selectedProducts.length === 0"
-            @click="generateAlbum"
-            class="px-6 hover:scale-105 transition-transform duration-200"
-          >
-            <template #icon>
-              <icon-image v-if="!albumGenerating" class="mr-2" />
-              <icon-loading v-else class="mr-2" />
-            </template>
-            {{ albumGenerating ? '生成中...' : '生成画册' }}
-          </a-button>
-          <a-button 
-            size="large"
-            :loading="sampleNoticeGenerating"
-            :disabled="selectedProducts.length === 0"
-            @click="generateSampleNotice"
-            class="px-6 hover:scale-105 transition-transform duration-200"
-          >
-            <template #icon>
-              <icon-file-text v-if="!sampleNoticeGenerating" class="mr-2" />
-              <icon-loading v-else class="mr-2" />
-            </template>
-            {{ sampleNoticeGenerating ? '生成中...' : '生成样品通知单' }}
-          </a-button>
-        </div>
+    <!-- 搜索和筛选区域 -->
+    <div class="search-filter-section mb-6">
+      <div class="flex flex-wrap gap-4 items-center">
+        <a-input-search
+          v-model="searchKeyword"
+          placeholder="搜索商品名称或描述"
+          class="w-64"
+          @search="handleSearch"
+        />
+        <a-select
+          v-model="selectedCategory"
+          placeholder="选择分类"
+          class="w-40"
+          @change="handleCategoryChange"
+        >
+          <a-option value="">全部分类</a-option>
+          <a-option value="clothing">服装</a-option>
+          <a-option value="accessories">配饰</a-option>
+          <a-option value="home">家居</a-option>
+        </a-select>
+        <a-select
+          v-model="selectedStatus"
+          placeholder="选择状态"
+          class="w-32"
+          @change="handleStatusChange"
+        >
+          <a-option value="">全部状态</a-option>
+          <a-option value="active">上架</a-option>
+          <a-option value="inactive">下架</a-option>
+        </a-select>
+        <a-button type="primary" @click="handleAddProduct">
+          <template #icon><icon-plus /></template>
+          添加商品
+        </a-button>
       </div>
-      
-      <!-- 查询条件区域 -->
-      <div class="mb-6 p-4 bg-gray-50 rounded-lg">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">所属类别</label>
-            <a-select 
-              v-model="searchForm.category" 
-              placeholder="全部类别" 
-              allow-clear
-              class="w-full"
-            >
-              <a-option value="">全部类别</a-option>
-              <a-option value="degree-bachelor">学位服 - 本科</a-option>
-              <a-option value="degree-master">学位服 - 硕士</a-option>
-              <a-option value="degree-doctor">学位服 - 博士</a-option>
-              <a-option value="school-uniform">校服</a-option>
-            </a-select>
-          </div>
-          
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">商品名称</label>
-            <a-input 
-              v-model="searchForm.productName" 
-              placeholder="请输入商品名称关键词"
-              allow-clear
-              :max-length="50"
+    </div>
+
+    <!-- 商品卡片网格 -->
+    <div class="product-grid">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div
+          v-for="product in paginatedProducts"
+          :key="product.id"
+          class="product-card bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 cursor-pointer"
+          @click="handleCardClick(product)"
+        >
+          <!-- 商品图片 -->
+          <div class="relative">
+            <img
+              :src="product.image"
+              :alt="product.name"
+              class="w-full h-48 object-cover rounded-t-lg"
             />
+            <div class="absolute top-2 right-2">
+              <a-tag
+                :color="product.status === 'active' ? 'green' : 'red'"
+                class="text-xs"
+              >
+                {{ product.status === 'active' ? '上架' : '下架' }}
+              </a-tag>
+            </div>
           </div>
-          
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">所属客户</label>
-            <a-input 
-              v-model="searchForm.customer" 
-              placeholder="请输入客户名称关键词"
-              allow-clear
-              :max-length="50"
-            />
-          </div>
-          
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">日期区间</label>
-            <a-range-picker 
-              v-model="searchForm.dateRange"
-              class="w-full"
-              :placeholder="['开始日期', '结束日期']"
-            />
-          </div>
-        </div>
-        
-        <div class="flex justify-end items-center mt-4">
-          <div class="flex space-x-3">
-            <a-button @click="resetSearch">重置</a-button>
-            <a-button type="primary" @click="handleSearch">
-              <icon-search class="mr-2" />
-              搜索
-            </a-button>
-          </div>
-        </div>
-      </div>
-      
-      <!-- 商品卡片网格展示 -->
-      <div class="mb-6">
-        <a-spin :loading="loading" class="w-full">
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div 
-              v-for="(product, index) in productList" 
-              :key="product.id"
-              class="product-card bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer animate-fade-in"
-              @click="handleCardClick(product)"
-              :style="{ animationDelay: `${index * 100}ms` }"
-            >
-              <!-- 复选框 -->
-              <div class="absolute top-3 left-3 z-10">
-                <a-checkbox 
-                  v-model="selectedProducts"
-                  :value="product.id"
-                  @click.stop
-                  class="bg-white bg-opacity-80 rounded"
-                />
+
+          <!-- 商品信息 -->
+          <div class="p-4">
+            <h3 class="text-lg font-semibold text-gray-800 mb-2 truncate">
+              {{ product.name }}
+            </h3>
+            <p class="text-gray-600 text-sm mb-3 line-clamp-2">
+              {{ product.description }}
+            </p>
+            
+            <!-- 价格单独一行 -->
+            <div class="mb-3">
+              <span class="text-xl font-bold text-red-500">
+                ¥{{ product.price }}
+              </span>
+            </div>
+
+            <!-- 按钮区域 - 两行布局 -->
+            <div class="space-y-2">
+              <!-- 第一行：AI快捷生成、AI高级配置 -->
+              <div class="flex gap-2">
+                <a-button
+                  type="outline"
+                  size="small"
+                  class="flex-1 text-purple-600 border-purple-300 hover:bg-purple-50"
+                  @click.stop="showAIQuickModal(product)"
+                >
+                  AI快捷生成
+                </a-button>
+                <a-button
+                  type="outline"
+                  size="small"
+                  class="flex-1 text-blue-600 border-blue-300 hover:bg-blue-50"
+                  @click.stop="showAIAdvancedModal(product)"
+                >
+                  AI高级配置
+                </a-button>
               </div>
               
-              <!-- 商品图片 -->
-              <div class="relative h-48 overflow-hidden rounded-t-lg image-container">
-                <img 
-                  :src="product.image || '/placeholder-product.svg'" 
-                  :alt="product.name"
-                  class="w-full h-full object-cover product-image"
-                  @error="handleImageError"
-                  @click.stop="showImagePreview(product.image, product.name)"
-                />
-                <div class="image-overlay">
-                  <div class="preview-icon">
-                    <icon-eye class="text-white text-2xl" />
-                  </div>
-                </div>
-              </div>
-              
-              <!-- 商品信息 -->
-              <div class="p-4">
-                <div class="text-sm text-gray-500 mb-1 truncate">{{ product.category }}</div>
-                <h3 class="text-base font-semibold text-gray-900 mb-1 truncate" :title="product.name">
-                  {{ product.name }}
-                </h3>
-                <div class="text-sm text-gray-500 mb-3 truncate">{{ product.customer }}</div>
-                <div class="flex items-center justify-between">
-                  <span class="text-lg font-bold text-red-600">¥{{ product.price.toFixed(2) }}</span>
-                  <div class="flex space-x-2">
-                    <a-button 
-                      size="small" 
-                      type="outline"
-                      class="text-purple-600 border-purple-600 hover:bg-purple-50"
-                      @click.stop="showAIQuickModal(product)"
-                    >
-                      <icon-robot class="mr-1" />
-                      AI快捷生成
-                    </a-button>
-                    <a-button 
-                      size="small" 
-                      type="text"
-                      class="text-purple-600"
-                      @click.stop="showAIAdvancedModal(product)"
-                    >
-                      AI高级配置
-                    </a-button>
-                  </div>
-                </div>
+              <!-- 第二行：编辑、删除 -->
+              <div class="flex gap-2">
+                <a-button
+                  type="outline"
+                  size="small"
+                  class="flex-1 text-green-600 border-green-300 hover:bg-green-50"
+                  @click.stop="editProduct(product)"
+                >
+                  编辑
+                </a-button>
+                <a-button
+                  type="outline"
+                  size="small"
+                  class="flex-1 text-red-600 border-red-300 hover:bg-red-50"
+                  @click.stop="deleteProduct(product)"
+                >
+                  删除
+                </a-button>
               </div>
             </div>
           </div>
-          
-          <!-- 空状态 -->
-          <div v-if="!loading && productList.length === 0" class="text-center py-16 animate-fade-in">
-            <div class="text-gray-400 text-6xl mb-4">📦</div>
-            <div class="text-gray-500 text-lg mb-2">暂无定制商品</div>
-            <div class="text-gray-400 text-sm">点击"新增"按钮添加您的第一个定制商品</div>
-          </div>
-        </a-spin>
-      </div>
-      
-      <!-- 分页 -->
-      <div class="flex justify-center">
-        <a-pagination
-          v-model:current="pagination.current"
-          v-model:page-size="pagination.pageSize"
-          :total="pagination.total"
-          :show-total="true"
-          :show-jumper="true"
-          :show-size-changer="true"
-          :page-size-options="['10', '20', '50', '100']"
-          @change="handlePageChange"
-          @page-size-change="handlePageSizeChange"
-        />
-      </div>
-    </div>
-    
-    <!-- 弹窗组件 -->
-    <AddProductModal 
-      :visible="addModalVisible" 
-      @update:visible="addModalVisible = $event"
-      @submit="handleAddProduct" 
-    />
-    <AIQuickGenerateModal 
-      :visible="aiQuickModalVisible" 
-      @update:visible="aiQuickModalVisible = $event"
-      :product="selectedProduct"
-      @save="handleAIQuickSave"
-    />
-    <AIAdvancedConfigModal 
-      :visible="aiAdvancedModalVisible" 
-      @update:visible="aiAdvancedModalVisible = $event"
-      :product="selectedProduct"
-      @save="handleAIAdvancedSave"
-      @generate="handleAIAdvancedGenerate"
-    />
-    
-    <!-- 图片预览弹窗 -->
-    <a-modal
-      :visible="imagePreviewVisible"
-      :footer="false"
-      :mask-closable="true"
-      :closable="true"
-      width="auto"
-      @cancel="imagePreviewVisible = false"
-      :body-style="{ padding: '0', textAlign: 'center', backgroundColor: '#000' }"
-      :mask-style="{ backgroundColor: 'rgba(0, 0, 0, 0.8)' }"
-    >
-      <div class="image-preview-container">
-        <img 
-          :src="previewImageUrl" 
-          :alt="previewImageTitle"
-          class="preview-image"
-          @wheel="handleImageZoom"
-          :style="{ transform: `scale(${zoomLevel})` }"
-        />
-        <div class="preview-controls">
-          <a-button 
-            type="text" 
-            size="large"
-            @click="zoomOut"
-            :disabled="zoomLevel <= 0.5"
-            class="control-btn"
-          >
-            <icon-minus class="text-white" />
-          </a-button>
-          <span class="zoom-level">{{ Math.round(zoomLevel * 100) }}%</span>
-          <a-button 
-            type="text" 
-            size="large"
-            @click="zoomIn"
-            :disabled="zoomLevel >= 3"
-            class="control-btn"
-          >
-            <icon-plus class="text-white" />
-          </a-button>
-          <a-button 
-            type="text" 
-            size="large"
-            @click="resetZoom"
-            class="control-btn"
-          >
-            <icon-refresh class="text-white" />
-          </a-button>
         </div>
       </div>
+    </div>
+
+    <!-- 分页 -->
+    <div class="flex justify-center mt-8">
+      <a-pagination
+        v-model:current="currentPage"
+        :total="filteredProducts.length"
+        :page-size="pageSize"
+        show-total
+        show-jumper
+        show-page-size
+        @change="handlePageChange"
+        @page-size-change="handlePageSizeChange"
+      />
+    </div>
+
+    <!-- AI快捷生成弹窗 -->
+    <a-modal
+      v-model:visible="aiQuickModalVisible"
+      title="AI快捷生成"
+      width="600px"
+      @ok="generateAlbum"
+      @cancel="aiQuickModalVisible = false"
+    >
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            生成类型
+          </label>
+          <a-radio-group v-model="aiQuickConfig.type" class="w-full">
+            <a-radio value="album">商品相册</a-radio>
+            <a-radio value="description">商品描述</a-radio>
+            <a-radio value="tags">商品标签</a-radio>
+          </a-radio-group>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            生成数量
+          </label>
+          <a-input-number
+            v-model="aiQuickConfig.count"
+            :min="1"
+            :max="10"
+            class="w-full"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            风格偏好
+          </label>
+          <a-select v-model="aiQuickConfig.style" class="w-full">
+            <a-option value="modern">现代简约</a-option>
+            <a-option value="vintage">复古风格</a-option>
+            <a-option value="minimalist">极简主义</a-option>
+            <a-option value="luxury">奢华风格</a-option>
+          </a-select>
+        </div>
+      </div>
+    </a-modal>
+
+    <!-- AI高级配置弹窗 -->
+    <a-modal
+      v-model:visible="aiAdvancedModalVisible"
+      title="AI高级配置"
+      width="800px"
+      @ok="generateAdvanced"
+      @cancel="aiAdvancedModalVisible = false"
+    >
+      <div class="space-y-6">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              目标受众
+            </label>
+            <a-select v-model="aiAdvancedConfig.audience" class="w-full">
+              <a-option value="young">年轻人群</a-option>
+              <a-option value="middle">中年人群</a-option>
+              <a-option value="senior">老年人群</a-option>
+              <a-option value="all">全年龄段</a-option>
+            </a-select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              价格区间
+            </label>
+            <a-select v-model="aiAdvancedConfig.priceRange" class="w-full">
+              <a-option value="low">经济型</a-option>
+              <a-option value="medium">中档</a-option>
+              <a-option value="high">高端</a-option>
+              <a-option value="luxury">奢侈品</a-option>
+            </a-select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            关键词
+          </label>
+          <a-textarea
+            v-model="aiAdvancedConfig.keywords"
+            placeholder="请输入相关关键词，用逗号分隔"
+            :rows="3"
+            class="w-full"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            品牌调性
+          </label>
+          <a-checkbox-group v-model="aiAdvancedConfig.brandTone" class="w-full">
+            <a-checkbox value="professional">专业</a-checkbox>
+            <a-checkbox value="friendly">友好</a-checkbox>
+            <a-checkbox value="innovative">创新</a-checkbox>
+            <a-checkbox value="trustworthy">可信赖</a-checkbox>
+            <a-checkbox value="trendy">时尚</a-checkbox>
+          </a-checkbox-group>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            生成内容
+          </label>
+          <a-checkbox-group v-model="aiAdvancedConfig.contentTypes" class="w-full">
+            <a-checkbox value="images">商品图片</a-checkbox>
+            <a-checkbox value="description">详细描述</a-checkbox>
+            <a-checkbox value="specifications">规格参数</a-checkbox>
+            <a-checkbox value="usage">使用说明</a-checkbox>
+            <a-checkbox value="marketing">营销文案</a-checkbox>
+          </a-checkbox-group>
+        </div>
+      </div>
+    </a-modal>
+
+    <!-- 商品详情弹窗 -->
+    <a-modal
+      v-model:visible="productDetailVisible"
+      :title="selectedProduct?.name"
+      width="900px"
+      :footer="false"
+    >
+      <div v-if="selectedProduct" class="space-y-6">
+        <div class="grid grid-cols-2 gap-6">
+          <div>
+            <img
+              :src="selectedProduct.image"
+              :alt="selectedProduct.name"
+              class="w-full h-64 object-cover rounded-lg"
+            />
+          </div>
+          <div class="space-y-4">
+            <div>
+              <h3 class="text-xl font-semibold text-gray-800">
+                {{ selectedProduct.name }}
+              </h3>
+              <p class="text-gray-600 mt-2">
+                {{ selectedProduct.description }}
+              </p>
+            </div>
+            <div>
+              <span class="text-2xl font-bold text-red-500">
+                ¥{{ selectedProduct.price }}
+              </span>
+            </div>
+            <div class="flex gap-2">
+              <a-tag
+                :color="selectedProduct.status === 'active' ? 'green' : 'red'"
+              >
+                {{ selectedProduct.status === 'active' ? '上架' : '下架' }}
+              </a-tag>
+              <a-tag color="blue">
+                {{ getCategoryName(selectedProduct.category) }}
+              </a-tag>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 商品规格 -->
+        <div>
+          <h4 class="text-lg font-medium text-gray-800 mb-3">商品规格</h4>
+          <div class="grid grid-cols-2 gap-4 text-sm">
+            <div class="flex justify-between">
+              <span class="text-gray-600">材质：</span>
+              <span>{{ selectedProduct.material || '暂无' }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">尺寸：</span>
+              <span>{{ selectedProduct.size || '暂无' }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">颜色：</span>
+              <span>{{ selectedProduct.color || '暂无' }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">重量：</span>
+              <span>{{ selectedProduct.weight || '暂无' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </a-modal>
+
+    <!-- 添加商品弹窗 -->
+    <a-modal
+      v-model:visible="addProductModalVisible"
+      title="添加商品"
+      width="700px"
+      @ok="handleSaveProduct"
+      @cancel="addProductModalVisible = false"
+    >
+      <a-form :model="newProduct" layout="vertical">
+        <div class="grid grid-cols-2 gap-4">
+          <a-form-item label="商品名称" required>
+            <a-input v-model="newProduct.name" placeholder="请输入商品名称" />
+          </a-form-item>
+          <a-form-item label="商品价格" required>
+            <a-input-number
+              v-model="newProduct.price"
+              placeholder="请输入价格"
+              :min="0"
+              :precision="2"
+              class="w-full"
+            />
+          </a-form-item>
+        </div>
+        <a-form-item label="商品描述">
+          <a-textarea
+            v-model="newProduct.description"
+            placeholder="请输入商品描述"
+            :rows="3"
+          />
+        </a-form-item>
+        <div class="grid grid-cols-2 gap-4">
+          <a-form-item label="商品分类">
+            <a-select v-model="newProduct.category" placeholder="选择分类">
+              <a-option value="clothing">服装</a-option>
+              <a-option value="accessories">配饰</a-option>
+              <a-option value="home">家居</a-option>
+            </a-select>
+          </a-form-item>
+          <a-form-item label="商品状态">
+            <a-select v-model="newProduct.status" placeholder="选择状态">
+              <a-option value="active">上架</a-option>
+              <a-option value="inactive">下架</a-option>
+            </a-select>
+          </a-form-item>
+        </div>
+        <a-form-item label="商品图片">
+          <a-upload
+            :file-list="newProduct.imageList"
+            :show-file-list="false"
+            @change="handleImageUpload"
+          >
+            <template #upload-button>
+              <div class="upload-area border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+                <icon-plus class="text-2xl text-gray-400 mb-2" />
+                <div class="text-gray-600">点击上传图片</div>
+              </div>
+            </template>
+          </a-upload>
+          <div v-if="newProduct.imagePreview" class="mt-4">
+            <img
+              :src="newProduct.imagePreview"
+              alt="预览"
+              class="w-32 h-32 object-cover rounded-lg"
+            />
+          </div>
+        </a-form-item>
+      </a-form>
     </a-modal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
-import { Message } from '@arco-design/web-vue'
-import AddProductModal from '../../components/AddProductModal.vue'
-import AIQuickGenerateModal from '../../components/AIQuickGenerateModal.vue'
-import AIAdvancedConfigModal from '../../components/AIAdvancedConfigModal.vue'
-
-// 定义产品类型
-interface Product {
-  id: number
-  name: string
-  category: string
-  customer: string
-  price: number  // 改为number类型
-  image: string
-  createTime: string
-  status: string
-}
+import { ref, computed, onMounted } from 'vue'
+import { IconPlus } from '@arco-design/web-vue/es/icon'
+import { Modal } from '@arco-design/web-vue'
 
 // 响应式数据
-const loading = ref(false)
-const selectedProduct = ref<Product | null>(null)
-const selectedProducts = ref<number[]>([])
-const albumGenerating = ref(false)
-const sampleNoticeGenerating = ref(false)
+const searchKeyword = ref('')
+const selectedCategory = ref('')
+const selectedStatus = ref('')
+const currentPage = ref(1)
+const pageSize = ref(12)
 
-// 搜索表单
-const searchForm = reactive({
+// 弹窗状态
+const aiQuickModalVisible = ref(false)
+const aiAdvancedModalVisible = ref(false)
+const productDetailVisible = ref(false)
+const addProductModalVisible = ref(false)
+
+// 选中的商品
+const selectedProduct = ref(null)
+
+// AI配置
+const aiQuickConfig = ref({
+  type: 'album',
+  count: 5,
+  style: 'modern'
+})
+
+const aiAdvancedConfig = ref({
+  audience: 'all',
+  priceRange: 'medium',
+  keywords: '',
+  brandTone: [],
+  contentTypes: []
+})
+
+// 新商品数据
+const newProduct = ref({
+  name: '',
+  price: 0,
+  description: '',
   category: '',
-  productName: '',
-  customer: '',
-  dateRange: [] as [Date, Date] | []
+  status: 'active',
+  imageList: [],
+  imagePreview: ''
 })
 
-// 分页配置
-const pagination = reactive({
-  current: 1,
-  pageSize: 10,
-  total: 0
-})
-
-// 商品列表数据
-const productList = ref<Product[]>([])
-
-// 模拟数据
-const mockProducts: Product[] = [
+// 模拟商品数据
+const products = ref([
   {
     id: 1,
-    name: '清华大学本科学位服 - 经管学院',
-    category: '学位服 - 本科',
-    customer: '清华大学',
+    name: '定制T恤衫',
+    description: '100%纯棉材质，舒适透气，支持个性化定制印花',
     price: 299.00,
-    image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=300&h=300&fit=crop',
-    createTime: '2024-01-15',
-    status: 'active'
+    image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400',
+    category: 'clothing',
+    status: 'active',
+    material: '100%纯棉',
+    size: 'S/M/L/XL',
+    color: '白色/黑色/灰色',
+    weight: '200g'
   },
   {
     id: 2,
-    name: '北京大学硕士学位服 - 法学院',
-    category: '学位服 - 硕士',
-    customer: '北京大学',
-    price: 399.00,
-    image: 'https://images.unsplash.com/photo-1503341504253-dff4815485f1?w=300&h=300&fit=crop',
-    createTime: '2024-01-14',
-    status: 'active'
+    name: '个性化帆布包',
+    description: '环保帆布材质，大容量设计，可定制专属图案',
+    price: 159.00,
+    image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400',
+    category: 'accessories',
+    status: 'active',
+    material: '帆布',
+    size: '40x35x10cm',
+    color: '原色/黑色',
+    weight: '300g'
   },
   {
     id: 3,
-    name: '复旦大学博士学位服 - 医学院',
-    category: '学位服 - 博士',
-    customer: '复旦大学',
-    price: 499.00,
-    image: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=300&h=300&fit=crop',
-    createTime: '2024-01-13',
-    status: 'active'
+    name: '定制马克杯',
+    description: '陶瓷材质，保温效果好，支持照片和文字定制',
+    price: 89.00,
+    image: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=400',
+    category: 'home',
+    status: 'active',
+    material: '陶瓷',
+    size: '350ml',
+    color: '白色/黑色',
+    weight: '400g'
   },
   {
     id: 4,
-    name: '上海中学校服 - 夏季款',
-    category: '校服',
-    customer: '上海中学',
-    price: 199.00,
-    image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=300&h=300&fit=crop',
-    createTime: '2024-01-12',
-    status: 'active'
+    name: '个性化手机壳',
+    description: '硅胶材质，防摔保护，支持多种手机型号定制',
+    price: 79.00,
+    image: 'https://images.unsplash.com/photo-1556656793-08538906a9f8?w=400',
+    category: 'accessories',
+    status: 'inactive',
+    material: '硅胶',
+    size: '多型号适配',
+    color: '透明/黑色/彩色',
+    weight: '50g'
   },
   {
     id: 5,
-    name: '中山大学本科学位服 - 理学院',
-    category: '学位服 - 本科',
-    customer: '中山大学',
-    price: 289.00,
-    image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=300&h=300&fit=crop',
-    createTime: '2024-01-11',
-    status: 'active'
+    name: '定制卫衣',
+    description: '加厚保暖，柔软舒适，支持刺绣和印花定制',
+    price: 399.00,
+    image: 'https://images.unsplash.com/photo-1556821840-3a9c6dcb3be8?w=400',
+    category: 'clothing',
+    status: 'active',
+    material: '棉混纺',
+    size: 'S/M/L/XL/XXL',
+    color: '灰色/黑色/白色',
+    weight: '600g'
   },
   {
     id: 6,
-    name: '华南理工大学硕士学位服 - 工学院',
-    category: '学位服 - 硕士',
-    customer: '华南理工大学',
-    price: 389.00,
-    image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=300&h=300&fit=crop',
-    createTime: '2024-01-10',
-    status: 'active'
-  },
-  {
-    id: 7,
-    name: '同济大学博士学位服 - 建筑学院',
-    category: '学位服 - 博士',
-    customer: '同济大学',
-    price: 519.00,
-    image: 'https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=300&h=300&fit=crop',
-    createTime: '2024-01-09',
-    status: 'active'
-  },
-  {
-    id: 8,
-    name: '华东师范大学校服 - 春秋款',
-    category: '校服',
-    customer: '华东师范大学',
-    price: 229.00,
-    image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=300&h=300&fit=crop',
-    createTime: '2024-01-08',
-    status: 'active'
-  },
-  {
-    id: 9,
-    name: '南京大学本科学位服 - 文学院',
-    category: '学位服 - 本科',
-    customer: '南京大学',
-    price: 309.00,
-    image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=300&h=300&fit=crop',
-    createTime: '2024-01-07',
-    status: 'active'
-  },
-  {
-    id: 10,
-    name: '浙江大学硕士学位服 - 计算机学院',
-    category: '学位服 - 硕士',
-    customer: '浙江大学',
-    price: 419.00,
-    image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=300&h=300&fit=crop',
-    createTime: '2024-01-06',
-    status: 'active'
-  },
-  {
-    id: 11,
-    name: '西安交通大学博士学位服 - 机械学院',
-    category: '学位服 - 博士',
-    customer: '西安交通大学',
-    price: 539.00,
-    image: 'https://images.unsplash.com/photo-1512499617640-c74ae3a79d37?w=300&h=300&fit=crop',
-    createTime: '2024-01-05',
-    status: 'active'
-  },
-  {
-    id: 12,
-    name: '深圳实验学校校服 - 冬季款',
-    category: '校服',
-    customer: '深圳实验学校',
-    price: 259.00,
-    image: 'https://images.unsplash.com/photo-1541963463532-d68292c34d19?w=300&h=300&fit=crop',
-    createTime: '2024-01-04',
-    status: 'active'
-  },
-  {
-    id: 13,
-    name: '四川大学本科学位服 - 商学院',
-    category: '学位服 - 本科',
-    customer: '四川大学',
-    price: 279.00,
-    image: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=300&h=300&fit=crop',
-    createTime: '2024-01-03',
-    status: 'active'
-  },
-  {
-    id: 14,
-    name: '华中科技大学硕士学位服 - 电信学院',
-    category: '学位服 - 硕士',
-    customer: '华中科技大学',
-    price: 409.00,
-    image: 'https://images.unsplash.com/photo-1609592806596-4d3b0c3b7b1b?w=300&h=300&fit=crop',
-    createTime: '2024-01-02',
-    status: 'active'
-  },
-  {
-    id: 15,
-    name: '天津大学博士学位服 - 化工学院',
-    category: '学位服 - 博士',
-    customer: '天津大学',
-    price: 529.00,
-    image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=300&fit=crop',
-    createTime: '2024-01-01',
-    status: 'active'
-  },
-  {
-    id: 16,
-    name: '广州市第一中学校服 - 运动款',
-    category: '校服',
-    customer: '广州市第一中学',
-    price: 189.00,
-    image: 'https://images.unsplash.com/photo-1521369909029-2afed882baee?w=300&h=300&fit=crop',
-    createTime: '2023-12-31',
-    status: 'active'
-  },
-  {
-    id: 17,
-    name: '东南大学本科学位服 - 土木学院',
-    category: '学位服 - 本科',
-    customer: '东南大学',
-    price: 319.00,
-    image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=300&h=300&fit=crop',
-    createTime: '2023-12-30',
-    status: 'active'
-  },
-  {
-    id: 18,
-    name: '大连理工大学硕士学位服 - 材料学院',
-    category: '学位服 - 硕士',
-    customer: '大连理工大学',
-    price: 429.00,
-    image: 'https://images.unsplash.com/photo-1503341504253-dff4815485f1?w=300&h=300&fit=crop',
-    createTime: '2023-12-29',
-    status: 'active'
-  },
-  {
-    id: 19,
-    name: '哈尔滨工业大学博士学位服 - 航天学院',
-    category: '学位服 - 博士',
-    customer: '哈尔滨工业大学',
-    price: 559.00,
-    image: 'https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=300&h=300&fit=crop',
-    createTime: '2023-12-28',
-    status: 'active'
-  },
-  {
-    id: 20,
-    name: '成都七中校服 - 礼仪款',
-    category: '校服',
-    customer: '成都七中',
-    price: 269.00,
-    image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=300&h=300&fit=crop',
-    createTime: '2023-12-27',
-    status: 'active'
+    name: '个性化鼠标垫',
+    description: '防滑底座，精准定位，支持高清图片定制',
+    price: 39.00,
+    image: 'https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=400',
+    category: 'accessories',
+    status: 'active',
+    material: '橡胶+布面',
+    size: '25x20cm',
+    color: '黑色边框',
+    weight: '100g'
   }
-]
+])
 
 // 计算属性
 const filteredProducts = computed(() => {
-  let filtered = [...mockProducts]
-  
-  if (searchForm.category) {
-    filtered = filtered.filter(product => product.category === searchForm.category)
-  }
-  
-  if (searchForm.productName) {
-    filtered = filtered.filter(product => 
-      product.name.toLowerCase().includes(searchForm.productName.toLowerCase())
-    )
-  }
-  
-  if (searchForm.customer) {
-    filtered = filtered.filter(product => 
-      product.customer.toLowerCase().includes(searchForm.customer.toLowerCase())
-    )
-  }
-  
-  if (searchForm.dateRange && searchForm.dateRange.length === 2) {
-    const [startDate, endDate] = searchForm.dateRange as [Date, Date]
-    filtered = filtered.filter(product => {
-      const productDate = new Date(product.createTime)
-      return productDate >= startDate && productDate <= endDate
-    })
-  }
-  
-  return filtered
+  return products.value.filter(product => {
+    const matchesSearch = !searchKeyword.value || 
+      product.name.toLowerCase().includes(searchKeyword.value.toLowerCase()) ||
+      product.description.toLowerCase().includes(searchKeyword.value.toLowerCase())
+    
+    const matchesCategory = !selectedCategory.value || product.category === selectedCategory.value
+    const matchesStatus = !selectedStatus.value || product.status === selectedStatus.value
+    
+    return matchesSearch && matchesCategory && matchesStatus
+  })
+})
+
+const paginatedProducts = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return filteredProducts.value.slice(start, end)
 })
 
 // 方法
-const loadProducts = () => {
-  loading.value = true
-  
-  setTimeout(() => {
-    const filtered = filteredProducts.value
-    const start = (pagination.current - 1) * pagination.pageSize
-    const end = start + pagination.pageSize
-    
-    productList.value = filtered.slice(start, end)
-    pagination.total = filtered.length
-    loading.value = false
-  }, 500)
-}
-
 const handleSearch = () => {
-  pagination.current = 1
-  loadProducts()
+  currentPage.value = 1
 }
 
-const resetSearch = () => {
-  searchForm.category = ''
-  searchForm.productName = ''
-  searchForm.customer = ''
-  searchForm.dateRange = []
-  pagination.current = 1
-  loadProducts()
+const handleCategoryChange = () => {
+  currentPage.value = 1
+}
+
+const handleStatusChange = () => {
+  currentPage.value = 1
 }
 
 const handlePageChange = (page: number) => {
-  pagination.current = page
-  loadProducts()
+  currentPage.value = page
 }
 
-const handlePageSizeChange = (pageSize: number) => {
-  pagination.pageSize = pageSize
-  pagination.current = 1
-  loadProducts()
+const handlePageSizeChange = (size: number) => {
+  pageSize.value = size
+  currentPage.value = 1
 }
 
-const handleCardClick = (product: Product) => {
-  console.log('查看商品详情:', product)
+const handleCardClick = (product: any) => {
+  selectedProduct.value = product
+  productDetailVisible.value = true
 }
 
-const handleImageError = (event: Event) => {
-  const target = event.target as HTMLImageElement
-  target.src = '/placeholder-product.svg'
-}
-
-const showAIQuickModal = (product: Product) => {
+const showAIQuickModal = (product: any) => {
   selectedProduct.value = product
   aiQuickModalVisible.value = true
 }
 
-const showAIAdvancedModal = (product: Product) => {
+const showAIAdvancedModal = (product: any) => {
   selectedProduct.value = product
   aiAdvancedModalVisible.value = true
 }
 
-const generateAlbum = async () => {
-  if (selectedProducts.value.length === 0) {
-    Message.warning('请先选择商品')
+const generateAlbum = () => {
+  // 模拟AI生成过程
+  console.log('生成相册配置:', aiQuickConfig.value)
+  // 这里可以调用实际的AI生成API
+  aiQuickModalVisible.value = false
+  
+  // 显示生成结果通知
+  generateSampleNotice()
+}
+
+const generateAdvanced = () => {
+  // 模拟AI高级生成过程
+  console.log('高级生成配置:', aiAdvancedConfig.value)
+  // 这里可以调用实际的AI生成API
+  aiAdvancedModalVisible.value = false
+  
+  // 显示生成结果通知
+  generateSampleNotice()
+}
+
+const generateSampleNotice = () => {
+  // 这里可以显示生成结果的通知
+  console.log('AI生成完成')
+}
+
+const handleAddProduct = () => {
+  // 重置新商品数据
+  newProduct.value = {
+    name: '',
+    price: 0,
+    description: '',
+    category: '',
+    status: 'active',
+    imageList: [],
+    imagePreview: ''
+  }
+  addProductModalVisible.value = true
+}
+
+const handleSaveProduct = () => {
+  // 验证表单数据
+  if (!newProduct.value.name || !newProduct.value.price) {
+    console.log('请填写必要信息')
     return
   }
   
-  // 显示加载状态
-  const loadingMessage = Message.loading('正在生成画册，请稍候...')
+  // 添加新商品到列表
+  const newId = Math.max(...products.value.map(p => p.id)) + 1
+  products.value.unshift({
+    ...newProduct.value,
+    id: newId,
+    image: newProduct.value.imagePreview || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400'
+  })
   
-  try {
-    // 获取选中的商品信息
-    const selectedProductsData = productList.value.filter(product => 
-      selectedProducts.value.includes(product.id)
-    )
-    
-    // 模拟生成画册的过程
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
-    // 生成画册数据
-    const albumData = {
-      title: `定制商品画册_${new Date().toLocaleDateString()}`,
-      products: selectedProductsData,
-      generateTime: new Date().toLocaleString(),
-      totalProducts: selectedProductsData.length
+  addProductModalVisible.value = false
+  console.log('商品添加成功')
+}
+
+const handleImageUpload = (fileList: any) => {
+  if (fileList.length > 0) {
+    const file = fileList[0].originFile
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      newProduct.value.imagePreview = e.target?.result as string
     }
-    
-    // 模拟下载画册PDF
-    console.log('生成的画册数据:', albumData)
-    
-    loadingMessage.close()
-    Message.success({
-      content: `画册生成成功！包含 ${selectedProducts.value.length} 个商品`,
-      duration: 3000
-    })
-    
-    // 清空选择
-    selectedProducts.value = []
-    
-  } catch (error) {
-    loadingMessage.close()
-    Message.error('画册生成失败，请重试')
-    console.error('画册生成错误:', error)
+    reader.readAsDataURL(file)
   }
 }
 
-const generateSampleNotice = async () => {
-  if (selectedProducts.value.length === 0) {
-    Message.warning('请先选择商品')
-    return
+const getCategoryName = (category: string) => {
+  const categoryMap: Record<string, string> = {
+    clothing: '服装',
+    accessories: '配饰',
+    home: '家居'
   }
-  
-  // 显示加载状态
-  const loadingMessage = Message.loading('正在生成样品通知单，请稍候...')
-  
-  try {
-    // 获取选中的商品信息
-    const selectedProductsData = productList.value.filter(product => 
-      selectedProducts.value.includes(product.id)
-    )
-    
-    // 模拟生成Excel的过程
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    
-    // 生成Excel数据结构
-    const excelData = {
-      title: '样品通知单',
-      generateTime: new Date().toLocaleString(),
-      products: selectedProductsData.map((product, index) => ({
-        序号: index + 1,
-        商品名称: product.name,
-        所属类别: product.category,
-        客户名称: product.customer,
-        单价: `¥${product.price.toFixed(2)}`,
-        创建时间: product.createTime,
-        状态: product.status === 'active' ? '正常' : '停用',
-        备注: ''
-      }))
+  return categoryMap[category] || category
+}
+
+// 编辑商品
+const editProduct = (product: any) => {
+  console.log('编辑商品:', product.name)
+  // 这里可以打开编辑弹窗或跳转到编辑页面
+  // 示例：显示商品信息
+  Modal.info({
+    title: '编辑商品',
+    content: `正在编辑商品：${product.name}`,
+    okText: '确定'
+  })
+}
+
+// 删除商品
+const deleteProduct = (product: any) => {
+  Modal.confirm({
+    title: '确认删除',
+    content: `确定要删除商品「${product.name}」吗？此操作不可恢复。`,
+    okText: '确定删除',
+    cancelText: '取消',
+    okButtonProps: {
+      status: 'danger'
+    },
+    onOk: () => {
+      // 模拟删除操作
+      const index = products.value.findIndex(p => p.id === product.id)
+      if (index > -1) {
+        products.value.splice(index, 1)
+        console.log('商品删除成功')
+      }
     }
-    
-    // 模拟Excel文件下载
-    console.log('生成的样品通知单数据:', excelData)
-    
-    // 创建虚拟下载链接（实际项目中会使用真实的Excel导出库）
-    const fileName = `样品通知单_${new Date().toLocaleDateString().replace(/\//g, '')}.xlsx`
-    
-    loadingMessage.close()
-    Message.success({
-      content: `样品通知单生成成功！包含 ${selectedProducts.value.length} 个商品，文件名：${fileName}`,
-      duration: 4000
-    })
-    
-    // 清空选择
-    selectedProducts.value = []
-    
-  } catch (error) {
-    loadingMessage.close()
-    Message.error('样品通知单生成失败，请重试')
-    console.error('样品通知单生成错误:', error)
-  }
+  })
 }
 
-// 弹窗状态
-const addModalVisible = ref(false)
-const aiQuickModalVisible = ref(false)
-const aiAdvancedModalVisible = ref(false)
-
-// 图片预览相关状态
-const imagePreviewVisible = ref(false)
-const previewImageUrl = ref('')
-const previewImageTitle = ref('')
-const zoomLevel = ref(1)
-
-const handleAddProduct = (product: any) => {
-  // 处理新增商品逻辑
-  console.log('新增商品:', product)
-  Message.success('商品新增成功！')
-  // 刷新商品列表
-  loadProducts()
-}
-
-// 新增商品
-const handleAddClick = () => {
-  addModalVisible.value = true
-}
-
-// AI快捷生成
-const handleAIQuickSave = (content: any) => {
-  console.log('AI快捷生成结果:', content)
-  Message.success('AI生成内容已保存！')
-}
-
-// AI高级配置
-const handleAIAdvancedSave = (config: any) => {
-  console.log('AI高级配置已保存:', config)
-  Message.success('AI配置已保存！')
-}
-
-const handleAIAdvancedGenerate = (config: any) => {
-  console.log('AI高级生成:', config)
-  Message.success('AI高级生成完成！')
-}
-
-const handleAddSuccess = () => {
-  Message.success('商品添加成功')
-  loadProducts()
-}
-
-const handleAIGenerateSuccess = () => {
-  Message.success('AI素材生成成功')
-}
-
-const handleAIConfigSuccess = () => {
-  Message.success('AI高级配置保存成功')
-}
-
-// 图片预览功能
-const showImagePreview = (imageUrl: string, title: string) => {
-  previewImageUrl.value = imageUrl
-  previewImageTitle.value = title
-  zoomLevel.value = 1
-  imagePreviewVisible.value = true
-}
-
-const zoomIn = () => {
-  if (zoomLevel.value < 3) {
-    zoomLevel.value = Math.min(zoomLevel.value + 0.2, 3)
-  }
-}
-
-const zoomOut = () => {
-  if (zoomLevel.value > 0.5) {
-    zoomLevel.value = Math.max(zoomLevel.value - 0.2, 0.5)
-  }
-}
-
-const resetZoom = () => {
-  zoomLevel.value = 1
-}
-
-const handleImageZoom = (event: WheelEvent) => {
-  event.preventDefault()
-  if (event.deltaY < 0) {
-    zoomIn()
-  } else {
-    zoomOut()
-  }
-}
-
-// 生命周期
 onMounted(() => {
-  loadProducts()
+  // 组件挂载后的初始化操作
+  console.log('定制商品管理页面已加载')
 })
 </script>
 
 <style scoped>
 .custom-product-management {
-  min-height: 100vh;
-  background-color: #f5f5f5;
   padding: 24px;
+  background-color: #f5f5f5;
+  min-height: 100vh;
+}
+
+.search-filter-section {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.product-grid {
+  background: transparent;
 }
 
 .product-card {
-  position: relative;
-  transition: all 0.2s ease-in-out;
+  transition: all 0.3s ease;
+  border: 1px solid #e5e7eb;
 }
 
 .product-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
-.product-card img {
-  transition: transform 0.2s ease-in-out;
-}
-
-.product-card:hover img {
-  transform: scale(1.05);
-}
-
-/* 紫色主题样式 */
-.text-purple-600 {
-  color: #7c3aed;
-}
-
-.border-purple-600 {
-  border-color: #7c3aed;
-}
-
-.hover\:bg-purple-50:hover {
-  background-color: #faf5ff;
-}
-
-/* 响应式设计优化 */
-@media (max-width: 640px) {
-  .custom-product-management {
-    padding: 12px;
-  }
-  
-  /* 移动端标题和按钮布局 */
-  .flex.items-center.justify-between.mb-6 {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 16px;
-  }
-  
-  .flex.space-x-3 {
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .flex.space-x-3 .a-button {
-    width: 100%;
-    justify-content: center;
-  }
-  
-  /* 移动端查询条件优化 */
-  .grid.grid-cols-1.md\\:grid-cols-4.gap-4 {
-    grid-template-columns: repeat(1, minmax(0, 1fr));
-    gap: 12px;
-  }
-  
-  /* 移动端商品卡片 - 1列布局 */
-  .grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-3.gap-4 {
-    grid-template-columns: repeat(1, minmax(0, 1fr));
-    gap: 16px;
-  }
-  
-  /* 移动端卡片内容优化 */
-  .product-card .p-4 {
-    padding: 16px;
-  }
-  
-  .product-card .flex.space-x-2 {
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .product-card .flex.space-x-2 .a-button {
-    width: 100%;
-    justify-content: center;
-  }
-}
-
-@media (min-width: 641px) and (max-width: 1024px) {
-  .custom-product-management {
-    padding: 20px;
-  }
-  
-  /* 平板端商品卡片 - 2列布局 */
-  .grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-3.gap-4 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 20px;
-  }
-  
-  /* 平板端查询条件 - 2列布局 */
-  .grid.grid-cols-1.md\\:grid-cols-4.gap-4 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 1025px) {
-  /* 桌面端商品卡片 - 3列布局 */
-  .grid.grid-cols-1.md\\:grid-cols-2.lg\\:grid-cols-3.gap-4 {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 24px;
-  }
-  
-  /* 桌面端查询条件 - 4列布局 */
-  .grid.grid-cols-1.md\\:grid-cols-4.gap-4 {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-
-/* 图片预览相关样式 */
-.image-container {
-  position: relative;
-  cursor: pointer;
-}
-
-.product-image {
-  transition: transform 0.3s ease;
-}
-
-.image-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.image-container:hover .image-overlay {
-  opacity: 1;
-}
-
-.preview-icon {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 50%;
-  padding: 12px;
-  backdrop-filter: blur(4px);
-}
-
-.image-preview-container {
-  position: relative;
-  max-width: 90vw;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.preview-image {
-  max-width: 100%;
-  max-height: 80vh;
-  object-fit: contain;
-  transition: transform 0.2s ease;
-  cursor: grab;
-}
-
-.preview-image:active {
-  cursor: grabbing;
-}
-
-.preview-controls {
-  position: absolute;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: rgba(0, 0, 0, 0.7);
-  padding: 8px 16px;
-  border-radius: 24px;
-  backdrop-filter: blur(8px);
-}
-
-.control-btn {
-  color: white !important;
-  border: none !important;
-  background: transparent !important;
-}
-
-.control-btn:hover {
-  background: rgba(255, 255, 255, 0.1) !important;
-}
-
-.zoom-level {
-  color: white;
-  font-size: 14px;
-  font-weight: 500;
-  min-width: 50px;
-  text-align: center;
-}
-
-/* 动画效果 */
-@keyframes fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.animate-fade-in {
-  animation: fade-in 0.6s ease-out forwards;
-  opacity: 0;
-}
-
-/* 加载动画 */
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-
-.animate-pulse {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-/* 按钮悬停效果 */
-.hover\\:scale-105:hover {
-  transform: scale(1.05);
-}
-
-/* 卡片悬停效果增强 */
-.product-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-}
-
-/* 加载骨架屏 */
-.skeleton {
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: loading 1.5s infinite;
-}
-
-@keyframes loading {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
-}
-
-/* 进度条动画 */
-.progress-bar {
-  position: relative;
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-.progress-bar::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-  animation: shimmer 2s infinite;
+.upload-area {
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-@keyframes shimmer {
-  0% {
-    left: -100%;
+.upload-area:hover {
+  border-color: #3b82f6;
+  background-color: #f8fafc;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .custom-product-management {
+    padding: 16px;
   }
-  100% {
-    left: 100%;
+  
+  .search-filter-section {
+    padding: 16px;
   }
-}</style>
+  
+  .search-filter-section .flex {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .search-filter-section .flex > * {
+    width: 100%;
+    margin-bottom: 8px;
+  }
+}
+
+@media (max-width: 640px) {
+  .product-grid .grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
